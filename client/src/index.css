@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes floatCode {
+	0% {
+		transform: translateY(0%);
+	}
+	100% {
+		transform: translateY(-66.66%);
+	}
+}
+
+.animate-floatCode {
+	animation: floatCode 30s linear infinite;
+}
