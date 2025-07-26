@@ -42,7 +42,7 @@ export default function Footer() {
 
         <div className="text-center md:text-left md:w-1/3 p-2 rounded-md space-y-1">
           <h4 className="text-white font-semibold mb-2">Contact</h4>
-          <p>Email: <a href="mailto:hello@marshmonster.dev" className="hover:text-lime-400">hello@marshmonster.dev</a></p>
+          <p>Email: <a href="mailto:hello@marsh.monster" className="hover:text-lime-400">hello@marsh.monster</a></p>
           <p className="mt-1">Based in: Earth’s Swampiest Server Room</p>
         </div>
       </div>

@@ -1,4 +1,3 @@
-import NavBar from '../components/common/NavBar';
 
 
 import React, { useState } from 'react';
