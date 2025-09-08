@@ -5,18 +5,22 @@ export default function Portfolio() {
     {
       title: 'Efferent Labs',
       description: 'Medical device company, primarily frontend but wired for backend user auth.',
+      url: 'https://goliath-app-hz6rj.ondigitalocean.app',
     },
     {
       title: 'BreezeShooters HVAC',
       description: 'HVAC website, backend has scheduling, account details, admin controls and payment system',
+      url: 'https://breezeshootershvac.com',
     },
     {
-      title: 'Whisky Talks',
-      description: 'A dark, whisky colored website for a couple whiskey bros, complete with a full backend member section.',
+      title: 'HittFitt',
+      description: 'Health and wellness tips site',
+      url: 'https://hittfitt.com',
     },
     {
-      title: 'Vinyl Wrapping',
-      description: 'Guy who has just got started and wants something basic.',
+      title: 'The Gathering',
+      description: 'Book promo website, featuring pre-order feature and small store',
+      url: 'https://thegatheringbook.com',
     },
   ]
 
@@ -28,11 +32,13 @@ export default function Portfolio() {
         <div className="grid gap-8 md:grid-cols-2">
           {projects.map((project, index) => (
             <div key={index} className="bg-[#1f1f1f] border border-gray-700 rounded-lg p-6 text-left shadow hover:shadow-lg transition">
-              <img
-                src={`/portfolio-${index + 1}.png`}
-                alt={project.title}
-                className="w-full h-40 object-cover rounded-md mb-4"
-              />
+              <a href={project.url} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={`/portfolio-${index + 1}.png`}
+                  alt={project.title}
+                  className="w-full h-80 object-cover rounded-md mb-4 hover:opacity-90 transition"
+                />
+              </a>
               <h2 className="text-xl font-semibold text-lime-400">{project.title}</h2>
               <p className="text-gray-300 mt-2">{project.description}</p>
             </div>

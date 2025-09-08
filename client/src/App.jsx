@@ -7,8 +7,8 @@ import Portfolio from './pages/Portfolio'
 import Pricing from './pages/Pricing'
 import Contact from './pages/Contact'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard' 
-import PrivateRoute from './components/common/PrivateRoute'
+// import Dashboard from './pages/Dashboard' 
+// import PrivateRoute from './components/common/PrivateRoute'
 import FAQpage from './pages/FAQpage';
 
 function AppWrapper() {
@@ -26,14 +26,14 @@ function AppWrapper() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/faq" element={<FAQpage />} />
-        <Route
+        {/* <Route
           path="/dashboard/*"
           element={
             <PrivateRoute>
               <Dashboard />
             </PrivateRoute>
           }
-        />
+        /> */}
       </Routes>
       {!isDashboardRoute && <Footer />}
     </>
