@@ -1,6 +1,6 @@
 import { useState } from 'react'
 // Formspree endpoint (set VITE_FORMSPREE_ENDPOINT in production)
-const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/REPLACE_ME'
+const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/mnngdpny'
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
