@@ -36,8 +36,9 @@ export default function Contact() {
   }
 
   return (
-    <section className="bg-[#121212] text-white py-20 px-6">
-      <div className="max-w-6xl mx-auto flex justify-center gap-12 items-start">
+    <div className="min-h-screen flex flex-col bg-[#121212]">
+      <section className="flex-1 text-white py-20 px-6 flex items-center">
+      <div className="max-w-6xl mx-auto w-full flex justify-center gap-12 items-center">
         {/* Main Contact Form */}
         <div className="w-full max-w-2xl">
           <h1 className="text-4xl font-bold text-lime-400 text-center mb-6">Let’s Talk</h1>
@@ -119,6 +120,7 @@ export default function Contact() {
           )}
         </div>
       </div>
-    </section>
+      </section>
+    </div>
   )
 }

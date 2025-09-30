@@ -2,7 +2,7 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 
 // Formspree endpoint for client-only submissions (set VITE_FORMSPREE_ENDPOINT in production)
-const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
+const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/mnngdpny'
 
 export default function Pricing() {
   const plans = [
