@@ -1,4 +1,6 @@
 import { useState } from 'react'
+// Formspree endpoint (set VITE_FORMSPREE_ENDPOINT in production)
+const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/REPLACE_ME'
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
@@ -6,24 +8,27 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData(e.target)
-    const data = {
+
+    const payload = {
       name: formData.get('name'),
       email: formData.get('email'),
       message: formData.get('message'),
+      _subject: 'Marsh Monster — Contact Page',
+      _gotcha: formData.get('company') || '', // honeypot
+      page: typeof window !== 'undefined' ? window.location.pathname : '/contact',
     }
+
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch(FORMSPREE_ENDPOINT, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       })
       if (response.ok) {
         setSubmitted(true)
       } else {
-        // handle error, e.g. show an error message (not specified in instructions)
-        console.error('Failed to send message')
+        const text = await response.text().catch(() => '')
+        console.error(`Failed to send message (${response.status}):`, text)
       }
     } catch (error) {
       console.error('Error sending message:', error)
@@ -50,6 +55,7 @@ export default function Contact() {
                   name="name"
                   type="text"
                   placeholder=" "
+                  required
                   className="peer w-full bg-[#1e1e1e] border border-gray-700 rounded p-3 pt-5 text-white focus:outline-none focus:border-lime-400"
                 />
                 <label
@@ -65,6 +71,7 @@ export default function Contact() {
                   name="email"
                   type="email"
                   placeholder=" "
+                  required
                   className="peer w-full bg-[#1e1e1e] border border-gray-700 rounded p-3 pt-5 text-white focus:outline-none focus:border-lime-400"
                 />
                 <label
@@ -80,6 +87,7 @@ export default function Contact() {
                   name="message"
                   rows="5"
                   placeholder=" "
+                  required
                   className="peer w-full bg-[#1e1e1e] border border-gray-700 rounded p-3 pt-5 text-white focus:outline-none focus:border-lime-400 resize-none"
                 />
                 <label
@@ -89,6 +97,14 @@ export default function Contact() {
                   Message
                 </label>
               </div>
+              {/* Honeypot: bots often fill hidden fields; humans won't see this */}
+              <input
+                type="text"
+                name="company"
+                tabIndex={-1}
+                autoComplete="off"
+                className="hidden"
+              />
               <button
                 type="submit"
                 className="bg-lime-400 hover:bg-lime-300 text-black font-semibold py-3 px-6 rounded transition duration-300 ease-in-out transform hover:scale-105 mx-auto block shadow-md hover:shadow-lg"
@@ -98,7 +114,7 @@ export default function Contact() {
             </form>
           ) : (
             <div className="text-center text-lime-400 text-xl animate-pulse mt-10">
-              ✅ Message Sent! We'll be in touch soon.
+               Message Sent! We'll be in touch soon.
             </div>
           )}
         </div>

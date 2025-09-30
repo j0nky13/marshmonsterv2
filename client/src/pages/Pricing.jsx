@@ -1,8 +1,10 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 
+// Formspree endpoint for client-only submissions (set VITE_FORMSPREE_ENDPOINT in production)
+const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
+
 export default function Pricing() {
-  // --------- PLAN DATA (hybrid pricing: starting-at + clear features)
   const plans = [
     {
       name: 'Starter',
@@ -28,9 +30,9 @@ export default function Pricing() {
         '3–6 page site (Home, About, Services, Contact, etc.)',
         'Custom design + copy guidance',
         'SEO setup + analytics dashboard',
-        'Booking, forms, or basic e‑commerce',
+        'Booking, forms, or basic e-commerce',
         '3 rounds of revisions',
-        '14‑day launch guarantee*',
+        '14-day launch guarantee*',
       ],
     },
     {
@@ -41,8 +43,8 @@ export default function Pricing() {
       highlight: false,
       features: [
         'Unlimited pages & custom components',
-        'Stripe, memberships, or advanced e‑commerce',
-        'Admin dashboard & role‑based access',
+        'Stripe, memberships, or advanced e-commerce',
+        'Admin dashboard & role-based access',
         'Integrations (HCP, Mail, CRM, automations)',
         'Priority support & ongoing optimization',
       ],
@@ -51,10 +53,10 @@ export default function Pricing() {
 
   const addOns = [
     { title: 'Stripe Payments', desc: 'Checkout, subscriptions, invoices', price: '+$250–$600' },
-    { title: 'SEO Sprint', desc: 'Keyword mapping, on‑page fixes, schema', price: '+$300' },
+    { title: 'SEO Sprint', desc: 'Keyword mapping, on-page fixes, schema', price: '+$300' },
     { title: 'Local SEO', desc: 'GBP setup, citations, reviews engine', price: '+$350' },
-    { title: 'CMS/Dashboard', desc: 'Client‑editable sections & media', price: '+$400–$900' },
-    { title: 'Animations', desc: 'On‑scroll + micro‑interactions', price: '+$150–$500' },
+    { title: 'CMS/Dashboard', desc: 'Client-editable sections & media', price: '+$400–$900' },
+    { title: 'Animations', desc: 'On-scroll + micro-interactions', price: '+$150–$500' },
     { title: 'Hosting + Care', desc: 'Monitoring, updates, backups', price: '$39/mo' },
   ]
 
@@ -69,7 +71,7 @@ export default function Pricing() {
     },
     {
       q: 'What if I need changes later?',
-      a: 'Every plan includes revisions. After launch, you can book changes ad‑hoc or keep us on with a monthly care plan.',
+      a: 'Every plan includes revisions. After launch, you can book changes ad-hoc or keep us on with a monthly care plan.',
     },
     {
       q: 'Can I upgrade later?',
@@ -86,9 +88,11 @@ export default function Pricing() {
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const plansRef = useRef(null)
+  const [planChoice, setPlanChoice] = useState('')
 
   const openForm = (planName = null) => {
     setSelectedPlan(planName)
+    setPlanChoice('')
     setModalOpen(true)
   }
   const closeForm = () => {
@@ -100,25 +104,45 @@ export default function Pricing() {
     e.preventDefault()
     setSubmitting(true)
     const formData = new FormData(e.target)
+
     const data = {
       name: formData.get('name'),
       email: formData.get('email'),
+      phone: formData.get('phone') || '',
+      preferredTime: formData.get('preferredTime') || '',
       message: formData.get('message'),
       plan: selectedPlan || formData.get('plan') || 'General',
     }
+
+    if ((selectedPlan === 'Call' || data.plan === 'Call') && !data.phone) {
+      alert('Please add a phone number for the call.')
+      setSubmitting(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/contact', {
+      const payload = {
+        ...data,
+        _subject: data.plan === 'Call' ? '10-min Call Request' : `New inquiry — ${data.plan}`,
+        _gotcha: formData.get('company') || '', // honeypot
+        page: typeof window !== 'undefined' ? window.location.pathname : '',
+      }
+
+      const response = await fetch(FORMSPREE_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       })
+
       if (response.ok) {
         alert('Thanks! We’ll get back to you shortly.')
         closeForm()
       } else {
-        alert('Failed to send. Please try again.')
+        const text = await response.text().catch(() => '')
+        alert(`Failed to send. (${response.status}) ${text || ''}`)
       }
     } catch (error) {
+      console.error(error)
       alert('An error occurred. Please try again.')
     } finally {
       setSubmitting(false)
@@ -129,14 +153,23 @@ export default function Pricing() {
     plansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // Prevent body scroll when modal open
+  // Prevent body scroll when modal open, and close on Escape
   useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') closeForm()
+    }
+
     if (modalOpen) {
       document.body.style.overflow = 'hidden'
+      window.addEventListener('keydown', onKeyDown)
     } else {
       document.body.style.overflow = ''
     }
-    return () => (document.body.style.overflow = '')
+
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [modalOpen])
 
   // --------- ANIMATION HELPERS
@@ -144,39 +177,52 @@ export default function Pricing() {
     hidden: { opacity: 0, y: 24 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   }
-  // Staggered reveal variants
   const gridVariants = {
     hidden: {},
-    visible: {
-      transition: { staggerChildren: 0.08, delayChildren: 0.05 }
-    }
+    visible: { transition: { staggerChildren: 0.02, delayChildren: 0.01 } },
   }
   const cardVariants = {
-    hidden: { opacity: 0, y: 28, rotateX: -6 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
-      rotateX: 0,
-      transition: { type: 'spring', stiffness: 240, damping: 26 }
+      transition: { type: 'tween', ease: 'easeOut', duration: 0.2 },
     },
     hover: {
-      y: -6,
-      scale: 1.02,
-      transition: { type: 'spring', stiffness: 260, damping: 18 }
-    }
+      y: -2,
+      scale: 1.01,
+      transition: { type: 'tween', ease: 'easeOut', duration: 0.12 },
+    },
   }
   const listVariants = {
     hidden: {},
-    visible: {
-      transition: { staggerChildren: 0.04, delayChildren: 0.15 }
-    }
+    visible: { transition: { staggerChildren: 0.02, delayChildren: 0.04 } },
   }
   const listItemVariants = {
-    hidden: { opacity: 0, x: -8 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.25 } }
+    hidden: { opacity: 0, x: -4 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.12 } },
+  }
+
+  // Add-ons animation variants
+  const addOnsGridVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.06, delayChildren: 0.02 } },
+  }
+
+  const addOnItemVariants = {
+    hidden: (i) => ({ opacity: 0, y: 14, x: i % 2 === 0 ? -8 : 8, scale: 0.98 }),
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      x: 0,
+      scale: 1,
+      transition: { duration: 0.22, ease: 'easeOut' },
+    }),
+    hover: { y: -2, scale: 1.01, transition: { duration: 0.12, ease: 'easeOut' } },
   }
 
   return (
+    <MotionConfig reducedMotion="user" transition={{ duration: 0.2, ease: 'easeOut' }}>
     <section className="bg-gradient-to-b from-[#121212] to-[#1a1a1a] text-white">
       {/* HERO */}
       <div className="max-w-6xl mx-auto px-6 pt-20 pb-10 text-center">
@@ -205,10 +251,10 @@ export default function Pricing() {
           transition={{ delay: 0.2 }}
         >
           <button
-            onClick={() => openForm('General')}
+            onClick={() => openForm('Call')}
             className="bg-lime-400 hover:bg-lime-300 text-black font-bold py-3 px-6 rounded shadow-md hover:shadow-xl transition-all"
           >
-            Book a 10‑min Call
+            Book a 10-min Call
           </button>
           <button
             onClick={scrollToPlans}
@@ -218,7 +264,6 @@ export default function Pricing() {
           </button>
         </motion.div>
       </div>
-
 
       {/* PRICING TABLE */}
       <div ref={plansRef} className="max-w-6xl mx-auto px-6 pb-6">
@@ -237,13 +282,13 @@ export default function Pricing() {
           variants={gridVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: 0.1 }}
         >
-          {plans.map((plan, index) => (
+          {plans.map((plan) => (
             <motion.div
               key={plan.name}
               style={{ transformStyle: 'preserve-3d' }}
-              className={`w-full max-w-[26rem] mx-auto bg-[#1f1f1f] border rounded-2xl p-6 md:p-8 shadow-lg md:hover:shadow-2xl transition-transform md:hover:scale-[1.03] overflow-hidden flex flex-col ${
+              className={`w-full max-w-[26rem] mx-auto bg-[#1f1f1f] border rounded-2xl p-6 md:p-8 shadow-lg md:hover:shadow-2xl transition-transform md:hover:scale-[1.03] overflow-hidden flex flex-col will-change-transform transform-gpu ${
                 plan.highlight
                   ? 'border-lime-400 md:ring-1 md:ring-lime-400/40 md:relative md:-my-3'
                   : 'border-lime-700'
@@ -271,7 +316,7 @@ export default function Pricing() {
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.18 }}
               >
                 {plan.name}
               </motion.h3>
@@ -280,7 +325,7 @@ export default function Pricing() {
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.25, delay: 0.05 }}
+                transition={{ duration: 0.18, delay: 0.05 }}
               >
                 {plan.price}
               </motion.p>
@@ -297,7 +342,12 @@ export default function Pricing() {
                 ))}
               </motion.ul>
 
-              <motion.div className="mt-8" initial={{ opacity: 0, y: 6 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              <motion.div
+                className="mt-8"
+                initial={{ opacity: 0, y: 6 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
                 <button
                   onClick={() => openForm(plan.name)}
                   className={`w-full relative overflow-hidden font-bold py-3 px-6 rounded transition-all ${
@@ -312,7 +362,7 @@ export default function Pricing() {
 
               {plan.name === 'Growth' && (
                 <p className="text-xs text-gray-400 mt-3 italic">
-                  *14‑day launch guarantee assumes timely content delivery and approvals.
+                  *14-day launch guarantee assumes timely content delivery and approvals.
                 </p>
               )}
             </motion.div>
@@ -320,7 +370,7 @@ export default function Pricing() {
         </motion.div>
       </div>
 
-      {/* ADD‑ONS */}
+      {/* ADD-ONS */}
       <div className="max-w-6xl mx-auto px-6 mt-16">
         <motion.h3
           className="text-2xl md:text-3xl font-bold text-center mb-6"
@@ -329,17 +379,19 @@ export default function Pricing() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
         >
-          Add‑ons & upgrades
+          Add-ons & upgrades
         </motion.h3>
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
           {addOns.map((a, i) => (
             <motion.div
               key={a.title}
-              className="bg-[#1f1f1f] border border-lime-700 rounded-xl p-5 hover:border-lime-400 transition-colors"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.03 }}
+              className="bg-[#1f1f1f] border border-lime-700 rounded-xl p-5 hover:border-lime-400 transition-colors will-change-transform transform-gpu"
+              variants={addOnItemVariants}
+              custom={i}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.35 }}
+              whileHover="hover"
             >
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold">{a.title}</h4>
@@ -409,6 +461,7 @@ export default function Pricing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={closeForm}
           >
             <motion.div
               className="bg-[#1f1f1f] p-6 rounded-2xl shadow-xl w-full max-w-md relative border border-lime-700"
@@ -416,6 +469,7 @@ export default function Pricing() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+              onClick={(e) => e.stopPropagation()}
             >
               <button
                 className="absolute top-3 right-3 text-white/80 text-2xl leading-none hover:text-white"
@@ -426,7 +480,11 @@ export default function Pricing() {
               </button>
 
               <h2 className="text-2xl font-bold text-lime-400 mb-1">
-                {selectedPlan ? `Start ${selectedPlan}` : 'Let’s get started'}
+                {selectedPlan === 'Call'
+                  ? 'Book a 10-min Call'
+                  : selectedPlan
+                    ? `Start ${selectedPlan}`
+                    : 'Let’s get started'}
               </h2>
               <p className="text-gray-400 mb-4">
                 Tell us a bit about your project and we’ll reply quickly.
@@ -439,6 +497,7 @@ export default function Pricing() {
                     className="px-4 py-2 rounded bg-[#2a2a2a] text-white border border-white/10"
                     defaultValue=""
                     required
+                    onChange={(e) => setPlanChoice(e.target.value)}
                   >
                     <option value="" disabled>
                       Choose a plan
@@ -449,8 +508,10 @@ export default function Pricing() {
                       </option>
                     ))}
                     <option value="General">Not sure yet</option>
+                    <option value="Call">10-min Call</option>
                   </select>
                 )}
+
                 <input
                   name="name"
                   type="text"
@@ -465,11 +526,40 @@ export default function Pricing() {
                   className="px-4 py-2 rounded bg-[#2a2a2a] text-white border border-white/10"
                   required
                 />
+
+                {(selectedPlan === 'Call' || planChoice === 'Call') && (
+                  <>
+                    <input
+                      name="phone"
+                      type="tel"
+                      placeholder="Phone (for the call)"
+                      className="px-4 py-2 rounded bg-[#2a2a2a] text-white border border-white/10"
+                      required
+                    />
+
+                    <input
+                      name="preferredTime"
+                      type="text"
+                      placeholder="Preferred time (optional)"
+                      className="px-4 py-2 rounded bg-[#2a2a2a] text-white border border-white/10"
+                    />
+                  </>
+                )}
+
+                {/* Honeypot field for bots; humans won't see/fill this */}
+                <input
+                  type="text"
+                  name="company"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  className="hidden"
+                />
+
                 <textarea
                   name="message"
                   placeholder="Project details, goals, timeline"
                   rows="4"
-                  className="px-4 py-2 rounded bg-[#2a2a2a] text-white border border-white/10"
+                  className="px-4 py-2 rounded bg-[#2a2a2a] text-white border border-white/10 resize-none"
                 ></textarea>
 
                 <button
@@ -485,5 +575,6 @@ export default function Pricing() {
         )}
       </AnimatePresence>
     </section>
+    </MotionConfig>
   )
 }
