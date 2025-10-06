@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const [condensed, setCondensed] = useState(false)
+  const [condensed, setCondensed] = useState(() => typeof window !== 'undefined' ? window.scrollY > 80 : false)
 
   useEffect(() => {
     let ticking = false
@@ -17,7 +17,6 @@ export default function Navbar() {
         ticking = true
       }
     }
-    onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -28,6 +27,26 @@ export default function Navbar() {
     }
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
+  }, [])
+
+
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
+
+  useEffect(() => {
+    // Ensure the page background is always dark so a transparent nav never shows white
+    const root = document.getElementById('root')
+    document.documentElement.style.backgroundColor = '#0f0f0f'
+    document.body.style.backgroundColor = '#0f0f0f'
+    if (root) root.style.backgroundColor = '#0f0f0f'
   }, [])
 
   const navItems = [
