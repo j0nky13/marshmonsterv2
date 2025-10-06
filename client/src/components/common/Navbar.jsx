@@ -4,6 +4,24 @@ import { useState, useEffect } from 'react'
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const [condensed, setCondensed] = useState(false)
+
+  useEffect(() => {
+    let ticking = false
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setCondensed(window.scrollY > 80)
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') setMenuOpen(false)
@@ -21,14 +39,14 @@ export default function Navbar() {
   ]
 
   return (
-    <nav className="bg-[#0f0f0f] text-white shadow-sm relative z-50">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center w-full justify-center md:justify-start">
+    <nav className={`${condensed ? 'bg-transparent shadow-none' : 'bg-[#0f0f0f] shadow-sm'} text-white sticky top-0 relative z-30 transition-colors duration-300`}>
+      <div className={`max-w-7xl mx-auto px-4 py-4 flex items-center ${condensed ? 'justify-end' : 'justify-between'}`}>
+        <Link to="/" className={`flex items-center ${condensed ? 'hidden' : 'w-full justify-center md:justify-start'}`}>
           <img src="/MM-Header2.svg" alt="Marsh Monster" className="h-16 w-auto" />
         </Link>
 
         {/* Desktop nav */}
-        <div className="space-x-6 hidden md:flex">
+        <div className={`space-x-6 ${condensed ? 'hidden' : 'hidden md:flex'}`}>
           {navItems.map(({ name, path }) => (
             <NavLink
               key={name}
@@ -46,7 +64,7 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
-          className={`md:hidden text-white focus:outline-none transition-opacity duration-300 ${menuOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          className={`${condensed ? 'bg-lime-600/40 backdrop-blur-sm p-2 rounded-md border border-lime-500/50' : 'md:hidden'} text-white focus:outline-none transition-all duration-300 ${menuOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           onClick={() => setMenuOpen(!menuOpen)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,13 +76,14 @@ export default function Navbar() {
       {/* Mobile nav panel (always in DOM, spring-style transition) */}
       {/* Backdrop overlay for mobile when menu is open */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden transition-opacity duration-300 ${menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setMenuOpen(false)}
         aria-hidden="true"
       />
       {/* Mobile nav panel with spring-style transition */}
       <div
-        className={`fixed top-0 left-0 h-full w-72 z-30 md:hidden transform-gpu transition-transform duration-700 ease-out ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        role="dialog" aria-modal="true"
+        className={`fixed top-0 left-0 h-full w-72 z-50 transform-gpu transition-transform duration-700 ease-out ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col items-center pt-20 space-y-6 bg-[#121212] h-full shadow-lg">
           {navItems.map(({ name, path }) => (
