@@ -12,6 +12,7 @@ import Login from './pages/Login'
 // import Dashboard from './pages/Dashboard' 
 // import PrivateRoute from './components/common/PrivateRoute'
 import FAQpage from './pages/FAQpage';
+import NotFound404 from './pages/404'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -46,6 +47,7 @@ function AppWrapper() {
               </PrivateRoute>
             }
           /> */}
+          <Route path="*" element={<NotFound404 />} />
         </Routes>
       </main>
       {!isDashboardRoute && <Footer className="mt-auto" />}
