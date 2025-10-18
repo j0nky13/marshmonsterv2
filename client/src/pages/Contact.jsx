@@ -50,50 +50,68 @@ export default function Contact() {
               onSubmit={handleSubmit}
               className="space-y-6 max-w-2xl mx-auto"
             >
-              <div className="relative">
+              <div className="relative group">
                 <input
                   id="name"
                   name="name"
                   type="text"
                   placeholder=" "
                   required
-                  className="peer w-full bg-[#1e1e1e] border border-gray-700 rounded p-3 pt-5 text-white focus:outline-none focus:border-lime-400"
+                  className="peer w-full rounded-xl bg-[#181818]/95 text-white border border-gray-700/80 px-4 py-3.5
+                             shadow-inner focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10
+                             transition-colors placeholder-transparent"
                 />
                 <label
                   htmlFor="name"
-                  className="absolute left-3 top-3 text-sm text-gray-400 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-1 peer-focus:text-xs peer-focus:text-lime-400"
+                  className="absolute left-3 top-3 text-gray-400 px-1 rounded
+                             transition-all duration-200 ease-out origin-left
+                             peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 peer-placeholder-shown:bg-transparent
+                             peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-lime-300 peer-focus:bg-[#1f1f1f]
+                             peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-gray-300 peer-[&:not(:placeholder-shown)]:bg-[#1f1f1f]"
                 >
                   Name
                 </label>
               </div>
-              <div className="relative">
+              <div className="relative group">
                 <input
                   id="email"
                   name="email"
                   type="email"
                   placeholder=" "
                   required
-                  className="peer w-full bg-[#1e1e1e] border border-gray-700 rounded p-3 pt-5 text-white focus:outline-none focus:border-lime-400"
+                  className="peer w-full rounded-xl bg-[#181818]/95 text-white border border-gray-700/80 px-4 py-3.5
+                             shadow-inner focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10
+                             transition-colors placeholder-transparent"
                 />
                 <label
                   htmlFor="email"
-                  className="absolute left-3 top-3 text-sm text-gray-400 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-1 peer-focus:text-xs peer-focus:text-lime-400"
+                  className="absolute left-3 top-3 text-gray-400 px-1 rounded
+                             transition-all duration-200 ease-out origin-left
+                             peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 peer-placeholder-shown:bg-transparent
+                             peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-lime-300 peer-focus:bg-[#1f1f1f]
+                             peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-gray-300 peer-[&:not(:placeholder-shown)]:bg-[#1f1f1f]"
                 >
                   Email
                 </label>
               </div>
-              <div className="relative">
+              <div className="relative group">
                 <textarea
                   id="message"
                   name="message"
                   rows="5"
                   placeholder=" "
                   required
-                  className="peer w-full bg-[#1e1e1e] border border-gray-700 rounded p-3 pt-5 text-white focus:outline-none focus:border-lime-400 resize-none"
+                  className="peer w-full rounded-xl bg-[#181818]/95 text-white border border-gray-700/80 px-4 py-3.5
+                             shadow-inner focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10
+                             transition-colors placeholder-transparent resize-none"
                 />
                 <label
                   htmlFor="message"
-                  className="absolute left-3 top-3 text-sm text-gray-400 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-1 peer-focus:text-xs peer-focus:text-lime-400"
+                  className="absolute left-3 top-3 text-gray-400 px-1 rounded
+                             transition-all duration-200 ease-out origin-left
+                             peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 peer-placeholder-shown:bg-transparent
+                             peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-lime-300 peer-focus:bg-[#1f1f1f]
+                             peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-gray-300 peer-[&:not(:placeholder-shown)]:bg-[#1f1f1f]"
                 >
                   Message
                 </label>
