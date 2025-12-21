@@ -1,4 +1,3 @@
-// src/modules/portal/pages/Inbox.jsx
 import { useEffect, useState } from "react";
 import {
   listMessages,

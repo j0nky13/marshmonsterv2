@@ -1,4 +1,3 @@
-// src/modules/portal/lib/auth.js
 import {
   sendSignInLinkToEmail,
   signInWithEmailLink,

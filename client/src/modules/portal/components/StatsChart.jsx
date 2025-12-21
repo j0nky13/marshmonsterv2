@@ -1,4 +1,3 @@
-// src/modules/portal/components/StatsChart.jsx
 import {
   LineChart,
   Line,

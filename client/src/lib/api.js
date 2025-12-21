@@ -1,4 +1,3 @@
-// client/src/lib/api.js
 
 export const fetchAdminOverviewStats = async () => {
   const res = await fetch('/api/admin/overview');

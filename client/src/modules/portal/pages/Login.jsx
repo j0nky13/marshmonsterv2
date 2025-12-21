@@ -1,4 +1,3 @@
-// src/modules/portal/pages/Login.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, completeEmailLogin } from "../lib/auth";

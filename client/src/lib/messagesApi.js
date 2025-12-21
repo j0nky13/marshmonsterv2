@@ -1,4 +1,3 @@
-// src/lib/messagesApi.js
 import {
   collection,
   addDoc,

@@ -1,4 +1,3 @@
-// src/modules/portal/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 

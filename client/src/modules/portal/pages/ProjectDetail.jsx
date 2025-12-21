@@ -1,4 +1,3 @@
-// src/modules/portal/pages/ProjectDetail.jsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getProject, updateProject } from "../lib/projectsApi";

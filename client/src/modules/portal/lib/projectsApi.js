@@ -1,4 +1,3 @@
-// src/modules/portal/lib/projectsApi.js
 import {
   collection,
   addDoc,

@@ -1,7 +1,8 @@
-// src/modules/portal/pages/Settings.jsx
 import { useState } from "react";
 import { logout, sendLoginLink } from "../lib/auth";
 import { createInvite } from "../lib/invitesApi";
+
+const GREEN = "#B6F24A";
 
 export default function Settings({ profile }) {
   const [inviteEmail, setInviteEmail] = useState("");
@@ -45,53 +46,82 @@ export default function Settings({ profile }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 max-w-4xl">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">Settings</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-semibold">Settings</h1>
+          <p className="text-sm text-slate-400">
             Account and portal controls
           </p>
         </div>
 
         <button
           onClick={logout}
-          className="text-xs px-3 py-2 rounded border border-slate-700 hover:bg-slate-900"
+          className="px-4 py-2 text-sm rounded border transition"
+          style={{
+            color: GREEN,
+            borderColor: "rgba(182,242,74,0.35)",
+            backgroundColor: "rgba(182,242,74,0.12)",
+          }}
         >
           Logout
         </button>
       </div>
 
-      <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-        <div className="text-xs text-slate-400">Signed in as</div>
-        <div>{profile.email}</div>
-        <div className="text-xs mt-1">
-          Role: <span className="font-medium">{profile.role}</span>
+      {/* PROFILE CARD */}
+      <div
+        className="rounded-xl p-4 border bg-black/40"
+        style={{ borderColor: "rgba(182,242,74,0.15)" }}
+      >
+        <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">
+          Account
+        </div>
+
+        <div className="text-sm text-slate-200">{profile.email}</div>
+
+        <div className="text-xs text-slate-400 mt-1">
+          Role:{" "}
+          <span
+            className="font-medium"
+            style={{ color: GREEN }}
+          >
+            {profile.role}
+          </span>
         </div>
       </div>
 
-      <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-        <div className="text-xs uppercase text-slate-400 mb-2">
-          Invite Users (Admin)
+      {/* INVITE USERS */}
+      <div
+        className="rounded-xl p-4 border bg-black/40"
+        style={{ borderColor: "rgba(182,242,74,0.15)" }}
+      >
+        <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+          Invite Users
         </div>
 
         {!isAdmin ? (
-          <div className="text-xs text-slate-400">
+          <div className="text-sm text-slate-400">
             You must be an admin to invite users.
           </div>
         ) : (
-          <form onSubmit={handleInvite} className="grid md:grid-cols-3 gap-2">
+          <form
+            onSubmit={handleInvite}
+            className="grid grid-cols-1 md:grid-cols-3 gap-3"
+          >
             <input
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               placeholder="email@company.com"
-              className="rounded bg-black border border-slate-700 px-2 py-2 text-sm"
+              className="rounded-lg bg-black border border-white/10 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1"
+              style={{ outlineColor: GREEN }}
             />
 
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value)}
-              className="rounded bg-black border border-slate-700 px-2 py-2 text-sm"
+              className="rounded-lg bg-black border border-white/10 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1"
+              style={{ outlineColor: GREEN }}
             >
               <option value="staff">staff</option>
               <option value="user">user</option>
@@ -100,15 +130,31 @@ export default function Settings({ profile }) {
 
             <button
               disabled={sending}
-              className="rounded bg-emerald-600 px-3 py-2 text-sm disabled:opacity-60"
+              className="rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-60"
+              style={{
+                backgroundColor: GREEN,
+                color: "#0c1118",
+              }}
             >
               {sending ? "Sending…" : "Send Invite"}
             </button>
           </form>
         )}
 
-        {sent && <div className="text-xs text-emerald-400 mt-2">{sent}</div>}
-        {err && <div className="text-xs text-red-400 mt-2">{err}</div>}
+        {sent && (
+          <div
+            className="text-xs mt-3"
+            style={{ color: GREEN }}
+          >
+            {sent}
+          </div>
+        )}
+
+        {err && (
+          <div className="text-xs text-red-400 mt-3">
+            {err}
+          </div>
+        )}
       </div>
     </div>
   );

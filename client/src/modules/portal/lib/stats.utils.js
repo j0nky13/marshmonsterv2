@@ -1,4 +1,3 @@
-// src/modules/portal/lib/stats.utils.js
 
 export function filterByTime(items, days) {
   if (days === "all") return items;

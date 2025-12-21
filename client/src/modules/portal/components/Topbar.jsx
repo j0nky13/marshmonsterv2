@@ -1,4 +1,3 @@
-// src/modules/portal/components/Topbar.jsx
 import { logout } from "../lib/auth";
 
 const GREEN = "#B6F24A";

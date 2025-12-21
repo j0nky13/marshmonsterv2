@@ -345,7 +345,7 @@ export default function Stats() {
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm capitalize border-b-2 transition ${
               tab === t
-                ? "border-emerald-400 text-emerald-300"
+                ? "border-[#B6F24A] text-[#B6F24A]"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
@@ -407,14 +407,14 @@ export default function Stats() {
                       <td className="py-2 pr-3 text-slate-200">{r.stage}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{r.count}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{money(r.revenue)}</td>
-                      <td className="py-2 pl-3 text-right text-emerald-300">{money(r.weighted)}</td>
+                      <td className="py-2 pl-3 text-right text-[#B6F24A]">{money(r.weighted)}</td>
                     </tr>
                   ))}
                   <tr>
                     <td className="py-3 pr-3 text-slate-400">Total Weighted</td>
                     <td className="py-3 px-3" />
                     <td className="py-3 px-3" />
-                    <td className="py-3 pl-3 text-right text-emerald-300 font-semibold">
+                    <td className="py-3 pl-3 text-right text-[#B6F24A] font-semibold">
                       {money(stageForecast.totalWeighted)}
                     </td>
                   </tr>
@@ -442,7 +442,7 @@ export default function Stats() {
                       <td className="py-2 pr-3 text-slate-400">{c.email}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{c.projects}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{money(c.total)}</td>
-                      <td className="py-2 pl-3 text-right text-emerald-300">{money(c.projected30)}</td>
+                      <td className="py-2 pl-3 text-right text-[#B6F24A]">{money(c.projected30)}</td>
                     </tr>
                   ))}
                   {clients.length === 0 && (
@@ -487,7 +487,7 @@ export default function Stats() {
                       <td className="py-2 pr-3 text-slate-200">{f.label}</td>
                       <td className="py-2 px-3 text-right text-slate-400">{money(f.low)}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{money(f.likelyLow)}</td>
-                      <td className="py-2 px-3 text-right text-emerald-300 font-semibold">{money(f.expected)}</td>
+                      <td className="py-2 px-3 text-right text-[#B6F24A] font-semibold">{money(f.expected)}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{money(f.likelyHigh)}</td>
                       <td className="py-2 pl-3 text-right text-slate-400">{money(f.high)}</td>
                     </tr>
@@ -534,7 +534,7 @@ export default function Stats() {
                       <td className="py-2 pr-3 text-slate-200">{r.status}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{r.count}</td>
                       <td className="py-2 px-3 text-right text-slate-300">{r.converted}</td>
-                      <td className="py-2 pl-3 text-right text-emerald-300">
+                      <td className="py-2 pl-3 text-right text-[#B6F24A]">
                         {Math.round((r.rate || 0) * 100)}%
                       </td>
                     </tr>
@@ -570,7 +570,7 @@ export default function Stats() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-slate-500">{l.status}</span>
-                      <span className="text-xs font-semibold text-emerald-300">
+                      <span className="text-xs font-semibold text-[#B6F24A]">
                         {Math.round(l.score * 100)}%
                       </span>
                     </div>
@@ -668,15 +668,15 @@ export default function Stats() {
             <div className="text-sm text-slate-300 space-y-2">
               <div>
                 <span className="text-slate-500">Total Revenue:</span>{" "}
-                <span className="text-emerald-300 font-semibold">{money(totalRevenue)}</span>
+                <span className="text-[#B6F24A] font-semibold">{money(totalRevenue)}</span>
               </div>
               <div>
                 <span className="text-slate-500">Weighted Pipeline:</span>{" "}
-                <span className="text-emerald-300 font-semibold">{money(stageForecast.totalWeighted)}</span>
+                <span className="text-[#B6F24A] font-semibold">{money(stageForecast.totalWeighted)}</span>
               </div>
               <div>
                 <span className="text-slate-500">Projected 30 days:</span>{" "}
-                <span className="text-emerald-300 font-semibold">{money(forecast.series[0]?.expected)}</span>
+                <span className="text-[#B6F24A] font-semibold">{money(forecast.series[0]?.expected)}</span>
               </div>
             </div>
           </Card>
@@ -692,7 +692,7 @@ function StatCard({ label, value, highlight }) {
   return (
     <div
       className={`bg-black/40 border rounded-lg p-4 ${
-        highlight ? "border-emerald-500/40" : "border-white/10"
+        highlight ? "border-[#B6F24A]/40" : "border-white/10"
       }`}
     >
       <div className="text-sm text-slate-400">{label}</div>
@@ -720,7 +720,7 @@ function ActionCard({ title, desc, onClick }) {
 
       <button
         onClick={onClick}
-        className="mt-auto px-4 py-2 text-xs rounded bg-emerald-600 hover:bg-emerald-500 text-black font-semibold"
+        className="mt-auto px-4 py-2 text-xs rounded bg-[#B6F24A] hover:bg-[#B6F24A] text-black font-semibold"
       >
         Download CSV
       </button>

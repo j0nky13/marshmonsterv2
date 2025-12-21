@@ -1,4 +1,3 @@
-// src/modules/portal/components/Sidebar.jsx
 import { NavLink } from "react-router-dom";
 
 const GREEN = "#B6F24A";

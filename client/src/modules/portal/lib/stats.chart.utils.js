@@ -1,4 +1,3 @@
-// src/modules/portal/lib/stats.chart.utils.js
 
 export function groupByDay(items, valueFn) {
   const map = {};

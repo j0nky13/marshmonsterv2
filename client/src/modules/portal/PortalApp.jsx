@@ -1,4 +1,3 @@
-// src/modules/portal/PortalApp.jsx
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";

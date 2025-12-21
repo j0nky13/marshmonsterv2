@@ -1,4 +1,3 @@
-// src/modules/portal/components/Layout.jsx
 import { Outlet } from "react-router-dom";
 import Navbar from "./NavBar.jsx";
 import Sidebar from "./Sidebar.jsx";
