@@ -1,21 +1,25 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import Navbar from "./components/common/Navbar";
 import Footer from "./components/common/Footer";
+import IntroSplash from "./components/common/IntroSplash";
 
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Portfolio from "./pages/Portfolio";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
-// import Login from "./pages/Login";
 import FAQpage from "./pages/FAQpage";
 import NotFound404 from "./pages/404";
 
 import PortalApp from "./modules/portal/PortalApp";
 
-/* Scroll restoration */
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -28,32 +32,44 @@ function AppWrapper() {
   const location = useLocation();
   const isPortalRoute = location.pathname.startsWith("/portal");
 
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !sessionStorage.getItem("mm_intro_seen");
+  });
+
+  function handleIntroFinish() {
+    sessionStorage.setItem("mm_intro_seen", "true");
+    setShowIntro(false);
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#ffff]">
       <ScrollToTop />
 
-      {!isPortalRoute && <Navbar />}
+      {/* Navbar ALWAYS mounted */}
+      {!isPortalRoute && (
+        <Navbar introActive={showIntro} />
+      )}
+
+      {/* Intro Splash overlays everything */}
+      {!isPortalRoute && showIntro && (
+        <IntroSplash onFinish={handleIntroFinish} />
+      )}
 
       <main className="flex-1">
         <Routes>
-          {/* Public site */}
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<FAQpage />} />
-          {/* <Route path="/login" element={<Login />} /> */}
-
-          {/* Portal */}
           <Route path="/portal/*" element={<PortalApp />} />
-
-          {/* Fallback */}
           <Route path="*" element={<NotFound404 />} />
         </Routes>
       </main>
 
-      {!isPortalRoute && <Footer />}
+      {!isPortalRoute && !showIntro && <Footer />}
     </div>
   );
 }

@@ -1,25 +1,59 @@
 export default function PricingCTA({ openForm }) {
   return (
-    <div className="max-w-6xl mx-auto px-6 mt-16 pb-24">
-      <div className="bg-gradient-to-r from-lime-500/20 to-lime-400/10 border border-lime-500/40 rounded-2xl p-8 text-center">
-        <h3 className="text-2xl md:text-3xl font-extrabold text-lime-300">
+    <div className="max-w-6xl mx-auto px-6 mt-24 pb-28">
+      <div
+        className="
+          border border-white/10
+          rounded-3xl
+          px-8 py-12
+          text-center
+          bg-black
+        "
+      >
+        <div className="text-xs tracking-[0.32em] uppercase text-gray-500 mb-4">
+          Next step
+        </div>
+
+        {/* HEADER COLOR CHANGED HERE */}
+        <h3 className="text-2xl md:text-3xl font-extrabold text-lime-400">
           Ready to move fast?
         </h3>
-        <p className="text-gray-300 mt-2">
-          Kick off with Starter today or book a quick call for a custom Monster build.
+
+        <p className="text-gray-400 mt-4 max-w-xl mx-auto">
+          Start with a focused launch or scope a larger product build.
+          We’ll help you choose the right path.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
           <button
-            onClick={() => openForm("Starter")}
-            className="bg-lime-400 hover:bg-lime-300 text-black font-bold py-3 px-6 rounded shadow-md hover:shadow-xl transition-all"
+            onClick={() => openForm("Launch Build")}
+            className="
+              px-6 py-3
+              rounded-2xl
+              font-semibold
+              text-black
+              bg-lime-400
+              hover:bg-lime-300
+              transition
+            "
           >
-            Start Starter
+            Start a launch build
           </button>
+
           <button
-            onClick={() => openForm("Monster")}
-            className="border border-lime-500/70 hover:border-lime-300 text-lime-300 hover:text-black hover:bg-lime-300 font-semibold py-3 px-6 rounded transition-all"
+            onClick={() => openForm("Platform Build")}
+            className="
+              px-6 py-3
+              rounded-2xl
+              font-semibold
+              text-lime-400
+              border border-white/20
+              hover:border-lime-400/60
+              hover:text-white
+              transition
+            "
           >
-            Talk Monster
+            Talk architecture
           </button>
         </div>
       </div>

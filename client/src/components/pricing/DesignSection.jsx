@@ -4,51 +4,85 @@ export default function DesignSection({ openForm }) {
   const services = [
     {
       title: "Brand Identity",
-      desc: "Logo systems, color palettes, typography, and complete brand kits.",
+      desc: "Logo systems, color palettes, typography, and cohesive brand foundations built to scale.",
     },
     {
       title: "Visual Design",
-      desc: "Custom layouts, art direction, and design systems for web & print.",
+      desc: "Custom layouts, art direction, and interface systems for web, product, and marketing.",
     },
     {
       title: "Creative Strategy",
-      desc: "Workshops and creative direction to define your tone and style.",
+      desc: "Creative direction and positioning to define tone, narrative, and visual consistency.",
     },
   ];
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-20 border-t border-lime-700/30">
-      <h2 className="text-3xl md:text-4xl font-bold text-lime-400 text-center mb-4">
-        Design & Branding
-      </h2>
-      <p className="text-gray-300 text-center max-w-2xl mx-auto mb-12">
-        When you’re ready to elevate beyond templates — our creative team builds brands and visuals that stand out and last.
-      </p>
+    <section className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10">
+      {/* Header */}
+      <div className="text-center mb-16">
+        <div className="text-xs tracking-[0.32em] uppercase text-gray-500 mb-4">
+          Design & branding
+        </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+        <h2 className="text-3xl md:text-4xl font-extrabold text-white">
+          Systems that look as good as they perform
+        </h2>
+
+        <p className="mt-6 text-gray-400 max-w-2xl mx-auto">
+          When you’re ready to move beyond templates, we design brands and
+          visuals with the same rigor as our software systems.
+        </p>
+      </div>
+
+      {/* Services */}
+      <div className="grid md:grid-cols-3 gap-10">
         {services.map((s, i) => (
           <motion.div
             key={s.title}
-            className="bg-[#1f1f1f] border border-lime-700 rounded-2xl p-8 hover:border-lime-400 transition-all shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: i * 0.08 }}
             viewport={{ once: true }}
+            className="
+              border border-white/15
+              rounded-3xl
+              p-8
+              transition
+              hover:border-lime-400/60
+            "
           >
-            <h3 className="text-2xl font-bold text-lime-400 mb-3">{s.title}</h3>
-            <p className="text-gray-300 mb-4">{s.desc}</p>
+            <h3 className="text-xl md:text-2xl font-extrabold text-white mb-4">
+              {s.title}
+            </h3>
+
+            <p className="text-gray-400 leading-relaxed">
+              {s.desc}
+            </p>
           </motion.div>
         ))}
       </div>
 
-      <div className="text-center mt-12">
+      {/* CTA */}
+      <div className="text-center mt-16">
         <button
-          onClick={() => openForm("Branding & Identity")}
-          className="bg-lime-400 hover:bg-lime-300 text-black font-bold py-3 px-8 rounded shadow-md hover:shadow-xl transition-all"
+          onClick={() => openForm("Branding & Design")}
+          className="
+            inline-flex
+            px-8 py-3
+            rounded-2xl
+            border border-white/20
+            font-semibold
+            text-white
+            transition
+            hover:border-lime-400
+            hover:text-lime-400
+          "
         >
-          Request Custom Quote
+          Discuss design work
         </button>
-        <p className="text-xs text-gray-400 mt-2">
-          All design services are custom-quoted based on scope and deliverables.
+
+        <p className="text-xs text-gray-500 mt-3">
+          Design engagements are custom-scoped based on goals and deliverables.
         </p>
       </div>
     </section>

@@ -14,3 +14,19 @@
 .animate-floatCode {
 	animation: floatCode 30s linear infinite;
 }
+
+@keyframes introShrink {
+	0% {
+		transform: translate(0, 0) scale(1);
+	}
+	100% {
+		transform: translate(-42vw, -42vh) scale(0.35);
+	}
+}
+
+.intro-logo {
+	width: 320px;
+	max-width: 70vw;
+	animation: introShrink 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	will-change: transform;
+}
