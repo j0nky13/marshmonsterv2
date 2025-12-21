@@ -43,7 +43,7 @@ function AppWrapper() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#ffff]">
+    <div className="min-h-screen flex flex-col bg-black">
       <ScrollToTop />
 
       {/* Navbar ALWAYS mounted */}
@@ -51,10 +51,10 @@ function AppWrapper() {
         <Navbar introActive={showIntro} />
       )}
 
-      {/* Intro Splash overlays everything */}
+      {/* Intro Splash overlays everything
       {!isPortalRoute && showIntro && (
         <IntroSplash onFinish={handleIntroFinish} />
-      )}
+      )} */}
 
       <main className="flex-1">
         <Routes>
