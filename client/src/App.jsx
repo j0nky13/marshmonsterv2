@@ -4,11 +4,11 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import Navbar from "./components/common/Navbar";
 import Footer from "./components/common/Footer";
-import IntroSplash from "./components/common/IntroSplash";
+// import IntroSplash from "./components/common/IntroSplash"; // intentionally disabled
 
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -20,43 +20,43 @@ import NotFound404 from "./pages/404";
 
 import PortalApp from "./modules/portal/PortalApp";
 
+/* ---------------- scroll reset ---------------- */
+
 function ScrollToTop() {
   const { pathname } = useLocation();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
   return null;
 }
+
+/* ---------------- app wrapper ---------------- */
 
 function AppWrapper() {
   const location = useLocation();
   const isPortalRoute = location.pathname.startsWith("/portal");
 
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !sessionStorage.getItem("mm_intro_seen");
-  });
-
-  function handleIntroFinish() {
-    sessionStorage.setItem("mm_intro_seen", "true");
-    setShowIntro(false);
-  }
+  // Intro is DISABLED for now — keep this simple and deterministic
+  const showIntro = false;
 
   return (
-    <div className="min-h-screen flex flex-col bg-black">
+    <div className="min-h-screen flex flex-col bg-black text-white">
       <ScrollToTop />
 
-      {/* Navbar ALWAYS mounted */}
-      {!isPortalRoute && (
-        <Navbar introActive={showIntro} />
-      )}
+      {/* NAVBAR (site only) */}
+      {!isPortalRoute && <Navbar introActive={showIntro} />}
 
-      {/* Intro Splash overlays everything
+      {/* INTRO SPLASH — intentionally disabled */}
+      {/*
       {!isPortalRoute && showIntro && (
         <IntroSplash onFinish={handleIntroFinish} />
-      )} */}
+      )}
+      */}
 
-      <main className="flex-1">
+      {/* MAIN CONTENT */}
+      <main className="flex-1 bg-black">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -69,10 +69,13 @@ function AppWrapper() {
         </Routes>
       </main>
 
-      {!isPortalRoute && !showIntro && <Footer />}
+      {/* FOOTER (site only, ALWAYS visible) */}
+      {!isPortalRoute && <Footer />}
     </div>
   );
 }
+
+/* ---------------- root ---------------- */
 
 export default function App() {
   return (

@@ -105,7 +105,7 @@ export default function HeroSection() {
                 transform: reveal ? "translateX(-1.25rem)" : "translateX(0)",
               }}
             >
-              We build&nbsp;
+              We build
             </span>
 
             <span className="inline-flex overflow-hidden">
