@@ -1,18 +1,33 @@
-// ServicePreview.jsx
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Code, Globe, Rocket, Search, ArrowRight } from "lucide-react";
 import { useMemo, useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const GREEN = "#B6F24A";
 
 export default function ServicePreview() {
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   // These refs are ONLY for the floating behavior
-  const leftWrapRef = useRef(null);     // wrapper that defines left column area
-  const leftCardRef = useRef(null);     // actual card we float
+  const leftWrapRef = useRef(null); // wrapper that defines left column area
+  const leftCardRef = useRef(null); // actual card we float
   const [floatMode, setFloatMode] = useState("normal"); // normal | fixed | bottom
   const [bottomTop, setBottomTop] = useState(0);
+
+  // Fix: when fixed, we must lock left + width to the wrapper (prevents “compressed / drifting” starts)
+  const [fixedLeft, setFixedLeft] = useState(0);
+  const [fixedWidth, setFixedWidth] = useState(0);
+
+  // Fix: disable float logic on mobile/tablet
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true
+  );
+
+  const lastModeRef = useRef("normal");
+  const lastBottomTopRef = useRef(0);
+  const lastFixedLeftRef = useRef(0);
+  const lastFixedWidthRef = useRef(0);
 
   const services = useMemo(
     () => [
@@ -60,13 +75,31 @@ export default function ServicePreview() {
   const spineScale = useTransform(scrollYProgress, [0.2, 0.85], [0, 1]);
   const glowOpacity = useTransform(scrollYProgress, [0.0, 0.4, 1], [0, 1, 0]);
 
+  // Track desktop breakpoint
+  useEffect(() => {
+    const onResize = () => {
+      const next = window.innerWidth >= 1024;
+      setIsDesktop(next);
+
+      // If we switch to mobile, force normal so nothing weird persists
+      if (!next) {
+        if (lastModeRef.current !== "normal") {
+          lastModeRef.current = "normal";
+          setFloatMode("normal");
+        }
+      }
+    };
+
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   /**
    * FLOAT LOGIC:
-   * - "fixed" while section is in view and not past the bottom
-   * - "bottom" when we would overlap past the section end
-   * - "normal" before the section reaches the viewport center
-   *
-   * This avoids sticky weirdness and gives you the exact “float” feel.
+   * - Disabled below lg (mobile/tablet)
+   * - On desktop, add activation buffer so it DOESN’T snap/feel compressed at the start
+   * - Lock left/width during fixed so the “rail” stays aligned with the wrapper
    */
   useEffect(() => {
     const onScroll = () => {
@@ -75,6 +108,15 @@ export default function ServicePreview() {
       const card = leftCardRef.current;
 
       if (!section || !leftWrap || !card) return;
+
+      // ✅ MOBILE FIX: never float below lg
+      if (!isDesktop) {
+        if (lastModeRef.current !== "normal") {
+          lastModeRef.current = "normal";
+          setFloatMode("normal");
+        }
+        return;
+      }
 
       const sectionRect = section.getBoundingClientRect();
       const wrapRect = leftWrap.getBoundingClientRect();
@@ -85,25 +127,30 @@ export default function ServicePreview() {
       // where we want the card to sit when fixed
       const fixedTopPx = viewportH / 2 - cardRect.height / 2;
 
-      // Start floating when section has reached a reasonable point in view
-      const sectionTopInView = sectionRect.top;
-      const sectionBottomInView = sectionRect.bottom;
+      // ✅ DESKTOP FIX: activation buffer to avoid “compressed start”
+      // - require the section to have moved meaningfully into view
+      // - and require the wrap top to be above (fixedTopPx + buffer)
+      const activationBuffer = Math.max(48, Math.round(viewportH * 0.12)); // ~12vh, minimum 48px
 
       // if section isn't in view at all
-      if (sectionBottomInView <= 0 || sectionTopInView >= viewportH) {
-        setFloatMode("normal");
+      if (sectionRect.bottom <= 0 || sectionRect.top >= viewportH) {
+        if (lastModeRef.current !== "normal") {
+          lastModeRef.current = "normal";
+          setFloatMode("normal");
+        }
         return;
       }
 
-      // If the section hasn't come down enough to justify floating yet
-      // (prevents it from snapping under the previous section)
-      if (sectionRect.top > fixedTopPx) {
-        setFloatMode("normal");
+      // Don’t start floating until we’re past the buffer
+      if (sectionRect.top > fixedTopPx + activationBuffer) {
+        if (lastModeRef.current !== "normal") {
+          lastModeRef.current = "normal";
+          setFloatMode("normal");
+        }
         return;
       }
 
       // Compute where the card would land if we "pin" it to the bottom
-      // of the left column area (so it never escapes the section)
       const wrapTopDoc = window.scrollY + wrapRect.top;
       const wrapHeight = leftWrap.offsetHeight;
       const cardHeight = card.offsetHeight;
@@ -111,15 +158,40 @@ export default function ServicePreview() {
       const bottomPinnedTopDoc = wrapTopDoc + (wrapHeight - cardHeight);
       const bottomPinnedTopPx = bottomPinnedTopDoc - window.scrollY;
 
+      // Lock the fixed element to the wrapper’s left/width so it never “shrinks” or drifts
+      const nextFixedLeft = Math.round(wrapRect.left);
+      const nextFixedWidth = Math.round(wrapRect.width);
+
+      if (lastFixedLeftRef.current !== nextFixedLeft) {
+        lastFixedLeftRef.current = nextFixedLeft;
+        setFixedLeft(nextFixedLeft);
+      }
+      if (lastFixedWidthRef.current !== nextFixedWidth) {
+        lastFixedWidthRef.current = nextFixedWidth;
+        setFixedWidth(nextFixedWidth);
+      }
+
       // If fixed would push it past the wrap's bottom, switch to "bottom" mode
       if (bottomPinnedTopPx < fixedTopPx) {
-        setFloatMode("bottom");
-        setBottomTop(wrapHeight - cardHeight);
+        const nextBottomTop = wrapHeight - cardHeight;
+
+        if (lastBottomTopRef.current !== nextBottomTop) {
+          lastBottomTopRef.current = nextBottomTop;
+          setBottomTop(nextBottomTop);
+        }
+
+        if (lastModeRef.current !== "bottom") {
+          lastModeRef.current = "bottom";
+          setFloatMode("bottom");
+        }
         return;
       }
 
       // Otherwise: float fixed in the center
-      setFloatMode("fixed");
+      if (lastModeRef.current !== "fixed") {
+        lastModeRef.current = "fixed";
+        setFloatMode("fixed");
+      }
     };
 
     onScroll();
@@ -129,7 +201,7 @@ export default function ServicePreview() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, []);
+  }, [isDesktop]);
 
   return (
     <section
@@ -159,12 +231,12 @@ export default function ServicePreview() {
         />
       </motion.div>
 
-      {/* IMPORTANT FIX:
-          On lg, the grid items must STRETCH so the left column becomes as tall as the right rail.
-          Otherwise, sticky has no “scroll room” and it just sits at the top. */}
       <div className="max-w-6xl mx-auto grid lg:grid-cols-12 gap-12 items-start lg:items-stretch">
         {/* LEFT: “Console” (FLOATS CENTERED WHILE SECTION IS IN VIEW) */}
-        <div ref={leftWrapRef} className="lg:col-span-5 lg:flex lg:items-stretch relative">
+        <div
+          ref={leftWrapRef}
+          className="lg:col-span-5 lg:flex lg:items-stretch relative"
+        >
           {/* This empty spacer keeps layout stable when card becomes fixed */}
           <div className="w-full" style={{ minHeight: "1px" }} />
 
@@ -172,24 +244,23 @@ export default function ServicePreview() {
             className="w-full self-center"
             style={{
               position:
-                floatMode === "fixed"
+                isDesktop && floatMode === "fixed"
                   ? "fixed"
-                  : floatMode === "bottom"
+                  : isDesktop && floatMode === "bottom"
                   ? "absolute"
                   : "relative",
               top:
-                floatMode === "fixed"
+                isDesktop && floatMode === "fixed"
                   ? "50%"
-                  : floatMode === "bottom"
+                  : isDesktop && floatMode === "bottom"
                   ? bottomTop
                   : "auto",
               transform:
-                floatMode === "fixed"
+                isDesktop && floatMode === "fixed"
                   ? "translateY(-50%)"
                   : "none",
-              left: floatMode === "fixed" ? undefined : "0",
-              right: floatMode === "fixed" ? undefined : "0",
-              width: floatMode === "fixed" ? leftWrapRef.current?.offsetWidth : "100%",
+              left: isDesktop && floatMode === "fixed" ? fixedLeft : "0",
+              width: isDesktop && floatMode === "fixed" ? fixedWidth : "100%",
               maxWidth: "100%",
               zIndex: 30,
               pointerEvents: "auto",
@@ -245,19 +316,16 @@ export default function ServicePreview() {
                 ))}
               </div>
 
-              <button
-                className="mt-8 w-full rounded-2xl px-5 py-3 font-semibold text-black flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: GREEN,
-                  boxShadow: "0 0 34px rgba(182,242,74,0.22)",
-                }}
-                onClick={() => {
-                  const el = document.getElementById("contact");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                Start a project <ArrowRight size={18} />
-              </button>
+       <button
+  className="mt-8 w-full rounded-2xl px-5 py-3 font-semibold text-black flex items-center justify-center gap-2"
+  style={{
+    backgroundColor: GREEN,
+    boxShadow: "0 0 34px rgba(182,242,74,0.22)",
+  }}
+  onClick={() => navigate("/contact")}
+>
+  Start a project <ArrowRight size={18} />
+</button>
             </motion.div>
           </div>
         </div>
@@ -422,3 +490,4 @@ export default function ServicePreview() {
     </section>
   );
 }
+

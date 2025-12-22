@@ -1,10 +1,102 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import ParticleBackground from "../ParticleBackground";
 import FloatingCode from "../FloatingCode";
 import { createMessage } from "../../lib/messagesApi";
 
 const GREEN = "#B6F24A";
+
+/* ---------- floating fields ---------- */
+
+function FloatingInput({ id, name, type = "text", label, required = false }) {
+  return (
+    <div className="relative group">
+      <input
+        id={id}
+        name={name}
+        type={type}
+        placeholder=" "
+        required={required}
+        className="peer w-full rounded-2xl bg-black text-white border border-white/15 px-4 py-3.5
+                   focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10
+                   transition placeholder-transparent"
+      />
+      <label
+        htmlFor={id}
+        className="absolute left-4 top-3.5 text-gray-400 text-sm transition-all
+                   peer-placeholder-shown:top-3.5
+                   peer-focus:-top-2 peer-focus:text-xs peer-focus:text-lime-300 peer-focus:bg-black peer-focus:px-1
+                   peer-[&:not(:placeholder-shown)]:-top-2 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:bg-black peer-[&:not(:placeholder-shown)]:px-1"
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
+function FloatingTextarea({ id, name, label, rows = 4, required = false }) {
+  return (
+    <div className="relative group">
+      <textarea
+        id={id}
+        name={name}
+        rows={rows}
+        placeholder=" "
+        required={required}
+        className="peer w-full rounded-2xl bg-black text-white border border-white/15 px-4 py-3.5
+                   focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10
+                   transition placeholder-transparent resize-none"
+      />
+      <label
+        htmlFor={id}
+        className="absolute left-4 top-3.5 text-gray-400 text-sm transition-all
+                   peer-placeholder-shown:top-3.5
+                   peer-focus:-top-2 peer-focus:text-xs peer-focus:text-lime-300 peer-focus:bg-black peer-focus:px-1
+                   peer-[&:not(:placeholder-shown)]:-top-2 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:bg-black peer-[&:not(:placeholder-shown)]:px-1"
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
+function FloatingSelect({ id, name, label, required = false, options = [] }) {
+  return (
+    <div className="relative group">
+      <select
+        id={id}
+        name={name}
+        required={required}
+        defaultValue=""
+        className="peer w-full appearance-none rounded-2xl bg-black text-white border border-white/15 px-4 py-3.5
+                   focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10
+                   transition"
+      >
+        <option value="" disabled>
+          Select…
+        </option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
+      <label
+        htmlFor={id}
+        className="absolute left-4 -top-2 text-xs text-lime-300 bg-black px-1"
+      >
+        {label}
+      </label>
+
+      {/* caret */}
+      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+        ▾
+      </div>
+    </div>
+  );
+}
 
 export default function HeroSection() {
   const [open, setOpen] = useState(false);
@@ -56,20 +148,30 @@ export default function HeroSection() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* ---------------- body lock ---------------- */
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+  }, [open]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
     const formData = new FormData(e.target);
 
+    const payload = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      company: formData.get("company"),
+      timeframe: formData.get("timeframe"),
+      message: formData.get("message"),
+      source: "hero-modal",
+      page: "/",
+    };
+
     try {
-      await createMessage({
-        name: formData.get("name"),
-        email: formData.get("email"),
-        message: formData.get("message"),
-        source: "hero-modal",
-        page: "/",
-      });
+      await createMessage(payload);
       setSubmitted(true);
     } catch {
       setError("Failed to send message. Please try again.");
@@ -115,9 +217,7 @@ export default function HeroSection() {
                   className="inline-block transition-all duration-500"
                   style={{
                     color: GREEN,
-                    transform: reveal
-                      ? "translateY(0)"
-                      : "translateY(120%)",
+                    transform: reveal ? "translateY(0)" : "translateY(120%)",
                     transitionDelay: `${i * 60}ms`,
                   }}
                 >
@@ -132,7 +232,7 @@ export default function HeroSection() {
                 color: GREEN,
                 transform: reveal ? "scale(1)" : "scale(0)",
                 opacity: reveal ? 1 : 0,
-                transitionDelay: `${"cool shit".length * 60 + 120}ms`,
+                transitionDelay: `${"cool stuff".length * 60 + 120}ms`,
               }}
             >
               .
@@ -180,84 +280,100 @@ export default function HeroSection() {
           </button>
         </div>
 
-      {/* DOWN ARROW — END OF SCREEN */}
-<div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-  <ChevronDown
-    size={34}
-    color={GREEN}
-    className="animate-bounce opacity-80"
-  />
-</div>
+        {/* DOWN ARROW */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <ChevronDown size={34} color={GREEN} className="animate-bounce opacity-80" />
+        </div>
       </section>
 
       {/* MODAL */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm px-4">
-          <div
-            className="bg-black w-full max-w-xl rounded-xl border p-6 relative"
-            style={{ borderColor: "rgba(182,242,74,0.25)" }}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
           >
-            <button
-              onClick={() => {
-                setOpen(false);
-                setSubmitted(false);
-                setError("");
-              }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            <motion.div
+              className="relative bg-black p-6 rounded-3xl w-full max-w-md border border-white/15"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
             >
-              ✕
-            </button>
-
-            <h2 className="text-2xl font-semibold text-white mb-1">
-              Let’s talk
-            </h2>
-            <p className="text-sm text-slate-400 mb-6">
-              We usually reply within 24 hours.
-            </p>
-
-            {!submitted ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {["name", "email"].map((f) => (
-                  <input
-                    key={f}
-                    name={f}
-                    required
-                    placeholder={f[0].toUpperCase() + f.slice(1)}
-                    className="w-full rounded bg-black/50 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-[rgba(182,242,74,0.6)]"
-                  />
-                ))}
-
-                <textarea
-                  name="message"
-                  rows="4"
-                  required
-                  placeholder="What are we building?"
-                  className="w-full rounded bg-black/50 border border-white/10 px-3 py-2 text-sm text-white resize-none outline-none focus:border-[rgba(182,242,74,0.6)]"
-                />
-
-                {error && (
-                  <div className="text-xs text-red-400">{error}</div>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full py-2 rounded font-semibold"
-                  style={{ backgroundColor: GREEN, color: "#0f0f0f" }}
-                >
-                  Send message
-                </button>
-              </form>
-            ) : (
-              <div
-                className="text-center py-10 text-lg animate-pulse"
-                style={{ color: GREEN }}
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setSubmitted(false);
+                  setError("");
+                }}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white"
               >
-                Message sent. We’ll be in touch.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                ✕
+              </button>
+
+              <h3 className="text-2xl font-extrabold text-lime-400 mb-2">
+                Start a project
+              </h3>
+
+              {!submitted ? (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <FloatingInput id="hero-name" name="name" label="Your name" required />
+                  <FloatingInput id="hero-email" name="email" type="email" label="Email" required />
+                  <FloatingInput
+                    id="hero-phone"
+                    name="phone"
+                    type="tel"
+                    label="Phone number"
+                  />
+                  <FloatingInput
+                    id="hero-company"
+                    name="company"
+                    label="Company name"
+                  />
+
+                  <FloatingSelect
+                    id="hero-timeframe"
+                    name="timeframe"
+                    label="Timeframe"
+                    options={[
+                      { value: "asap", label: "ASAP" },
+                      { value: "2-4-weeks", label: "2–4 weeks" },
+                      { value: "1-2-months", label: "1–2 months" },
+                      { value: "3-plus-months", label: "3+ months" },
+                      { value: "exploring", label: "Just exploring" },
+                    ]}
+                  />
+
+                  <FloatingTextarea
+                    id="hero-message"
+                    name="message"
+                    label="Tell us what you’re building…"
+                  />
+
+                  {error && <div className="text-xs text-red-400">{error}</div>}
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl px-6 py-3 font-semibold text-black bg-lime-400 hover:bg-lime-300 transition"
+                  >
+                    Send inquiry
+                  </button>
+                </form>
+              ) : (
+                <div
+                  className="text-center py-10 text-lg animate-pulse"
+                  style={{ color: GREEN }}
+                >
+                  Message sent. We’ll be in touch.
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -9,184 +9,143 @@ import {
   motion,
   useScroll,
   useTransform,
-  useInView,
 } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useLayoutEffect, useState } from "react";
 
 const GREEN = "#B6F24A";
 
-const features = [
+const slides = [
   {
     icon: Rocket,
-    title: "Raw, Purpose-Built Code",
+    title: "Built With Intention",
     description:
-      "No templates. No drag-and-drop. Every project is engineered from scratch using modern frameworks and deliberate architecture.",
-  },
-  {
-    icon: Brain,
-    title: "Monster Engine",
-    description:
-      "Our internal build system accelerates animation, performance, and responsiveness without sacrificing control or flexibility.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Security by Default",
-    description:
-      "Passwordless authentication, locked-down admin panels, and infrastructure designed with security-first thinking.",
+      "We don’t start with templates or shortcuts. Every system is designed with a clear purpose and built to do exactly what it needs to do — nothing more, nothing less.",
   },
   {
     icon: TrendingUp,
-    title: "Performance That Converts",
+    title: "Performance That Matters",
     description:
-      "Fast load times, clean DOMs, and SEO-aware structure — because speed isn’t a feature, it’s the baseline.",
+      "Fast load times and smooth interactions keep people engaged. When things feel instant, trust goes up and friction disappears.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Protection From the Start",
+    description:
+      "We think about safety early so you don’t have to fix it later. Clean access, sensible defaults, and fewer points of failure.",
+  },
+  {
+    icon: Brain,
+    title: "An Engine Behind the Scenes",
+    description:
+      "We use an internal system that helps us move faster without locking you into rigid patterns or limiting future growth.",
   },
 ];
 
 export default function WhyUs() {
   const sectionRef = useRef(null);
-  const endRef = useRef(null);
+  const trackRef = useRef(null);
 
-  /* Section presence (controls dots) */
-  const sectionInView = useInView(sectionRef, {
-    margin: "-25% 0px -25% 0px",
-  });
+  const [maxX, setMaxX] = useState(0);
+  const [vh, setVh] = useState(window.innerHeight);
 
-  /* Scroll progress for dot emphasis */
+  useLayoutEffect(() => {
+    if (!trackRef.current) return;
+    const totalWidth = trackRef.current.scrollWidth;
+    setMaxX(totalWidth - window.innerWidth);
+    setVh(window.innerHeight);
+  }, []);
+
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ["start end", "end start"],
+    offset: ["start start", "end end"],
   });
+
+  const x = useTransform(scrollYProgress, [0, 1], [0, -maxX]);
+
+  // Chevron fades when user scrolls either direction
+  const chevronOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.08, 0.9, 1],
+    [1, 0, 0, 1]
+  );
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-black text-white overflow-hidden"
+      className="relative bg-black text-white"
+      style={{ height: maxX + vh }}
     >
-      {/* FIXED SCROLL DOTS — ONLY WHILE SECTION IS ACTIVE */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: sectionInView ? 1 : 0 }}
-        transition={{ duration: 0.4 }}
-        className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 flex-col gap-4 pointer-events-none"
-      >
-        {features.map((_, i) => {
-          const start = i / features.length;
-          const end = (i + 1) / features.length;
-
-          const opacity = useTransform(
-            scrollYProgress,
-            [start - 0.08, start, end + 0.08],
-            [0.25, 1, 0.25]
-          );
-
-          const scale = useTransform(
-            scrollYProgress,
-            [start, end],
-            [1, 1.6]
-          );
-
-          return (
-            <motion.span
-              key={i}
-              style={{
-                opacity,
-                scale,
-                backgroundColor: GREEN,
-              }}
-              className="h-2.5 w-2.5 rounded-full"
-            />
-          );
-        })}
-      </motion.div>
-
-      {/* FEATURE SECTIONS */}
-      {features.map((feature) => {
-        const Icon = feature.icon;
-
-        return (
-          <motion.div
-            key={feature.title}
-            className="min-h-[70vh] flex items-center justify-center px-6 md:px-12"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, margin: "-120px" }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className="max-w-4xl w-full">
-              <div className="mb-4">
-                <Icon size={36} color={GREEN} />
-              </div>
-
-              <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-4">
-                {feature.title}
-              </h2>
-
+      {/* Sticky viewport */}
+      <div className="sticky top-0 h-screen overflow-hidden flex items-center">
+        <motion.div ref={trackRef} style={{ x }} className="flex">
+          {slides.map((slide, i) => {
+            const Icon = slide.icon;
+            return (
               <div
-                className="h-px w-20 mb-6"
-                style={{ backgroundColor: GREEN }}
-              />
+                key={i}
+                className="w-screen flex items-center justify-center px-6 md:px-12"
+              >
+                <div className="max-w-3xl">
+                  <Icon size={36} color={GREEN} />
+                  <h2 className="mt-6 text-3xl md:text-5xl font-extrabold leading-tight">
+                    {slide.title}
+                  </h2>
+                  <div
+                    className="h-px w-16 my-6"
+                    style={{ backgroundColor: GREEN }}
+                  />
+                  <p className="text-lg text-slate-300 max-w-xl">
+                    {slide.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
 
-              <p className="text-lg md:text-xl text-slate-300 max-w-xl">
-                {feature.description}
+          {/* SUMMARY */}
+          <div className="w-screen flex items-center justify-center px-6 md:px-12">
+            <div className="max-w-4xl text-center">
+              <h3 className="text-4xl md:text-5xl font-extrabold mb-6">
+                This isn’t a stack.{" "}
+                <span style={{ color: GREEN }}>It’s an engine.</span>
+              </h3>
+              <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-12">
+                Every decision compounds. Performance, safety, motion, and
+                conversion are designed together — not patched in later.
               </p>
-            </div>
-          </motion.div>
-        );
-      })}
-
-      {/* ENGINE SUMMARY */}
-      <motion.div
-        ref={endRef}
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: false, amount: 0.4 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="mt-32 max-w-6xl mx-auto px-6 pb-20"
-      >
-        <div className="rounded-3xl bg-black/70 backdrop-blur-xl px-12 py-20 text-center">
-          <h3 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
-            This isn’t a stack.{" "}
-            <span style={{ color: GREEN }}>It’s an engine.</span>
-          </h3>
-
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-16">
-            Every decision compounds. Performance, security, animation, and
-            conversion are engineered together — not patched in later.
-          </p>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-14 text-base">
-            <div className="flex flex-col items-center gap-3 text-slate-300">
-              <Rocket size={22} color={GREEN} />
-              Raw Code
-            </div>
-            <div className="flex flex-col items-center gap-3 text-slate-300">
-              <Brain size={22} color={GREEN} />
-              Monster Engine
-            </div>
-            <div className="flex flex-col items-center gap-3 text-slate-300">
-              <ShieldCheck size={22} color={GREEN} />
-              Secure by Default
-            </div>
-            <div className="flex flex-col items-center gap-3 text-slate-300">
-              <TrendingUp size={22} color={GREEN} />
-              Built to Convert
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-sm text-slate-300">
+                <div className="flex flex-col items-center gap-2">
+                  <Rocket size={20} color={GREEN} />
+                  Purpose-Built
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <Brain size={20} color={GREEN} />
+                  Engine-Driven
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <ShieldCheck size={20} color={GREEN} />
+                  Secure by Default
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <TrendingUp size={20} color={GREEN} />
+                  Built to Convert
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
-      {/* DOWN ARROW — APPEARS ONLY AT SECTION END */}
+      {/* Chevron */}
       <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        whileInView={{ opacity: 1, y: 16 }}
-        viewport={{ once: true, margin: "-120px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex justify-center pb-16"
+        style={{ opacity: chevronOpacity }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
         <ChevronDown
-          size={30}
-          color={GREEN}
+          size={28}
           className="animate-bounce"
+          color={GREEN}
+          style={{ animationDuration: "1.6s" }}
         />
       </motion.div>
     </section>

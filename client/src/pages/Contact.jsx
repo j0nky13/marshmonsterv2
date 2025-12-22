@@ -11,6 +11,15 @@ const GREEN = "#B6F24A";
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const formatPhone = (value) => {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+    if (digits.length < 4) return digits;
+    if (digits.length < 7)
+      return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,6 +30,10 @@ export default function Contact() {
     const payload = {
       name: formData.get("name"),
       email: formData.get("email"),
+      phone,
+      company: formData.get("company_name"),
+      timeframe: formData.get("timeframe"),
+      budget: formData.get("budget"),
       message: formData.get("message"),
       source: "contact",
       page:
@@ -41,7 +54,7 @@ export default function Contact() {
         body: JSON.stringify({
           ...payload,
           _subject: "Marsh Monster — Contact",
-          _gotcha: formData.get("company") || "",
+          _gotcha: formData.get("bot_field") || "",
         }),
       });
 
@@ -54,7 +67,6 @@ export default function Contact() {
 
   return (
     <section className="relative min-h-screen bg-black overflow-hidden px-6 py-32">
-      {/* Ambient engine glow */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
@@ -65,13 +77,12 @@ export default function Contact() {
       />
 
       <div className="relative max-w-5xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: false, amount: 0.3 }}
-          className="text-center mb-20 mt-6"
+          className="text-center mb-20"
         >
           <div className="text-xs tracking-[0.28em] uppercase text-gray-500 mb-4">
             Contact
@@ -86,7 +97,6 @@ export default function Contact() {
           </p>
         </motion.div>
 
-        {/* Console */}
         <motion.div
           initial={{ opacity: 0, y: 28 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -95,15 +105,79 @@ export default function Contact() {
           className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-black/70 backdrop-blur-xl p-8 md:p-10"
         >
           {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Field id="name" label="Name" />
-              <Field id="email" label="Email" type="email" />
-              <Field id="message" label="Message" textarea />
+            <form onSubmit={handleSubmit} className="grid gap-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <Field id="name" label="Name" />
+                <Field id="email" label="Email" type="email" />
 
-              {/* Honeypot */}
+                {/* Phone with formatting */}
+                <div className="relative">
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) =>
+                      setPhone(formatPhone(e.target.value))
+                    }
+                    placeholder=" "
+                    className="peer w-full rounded-2xl bg-black/60 text-white border border-white/15 px-4 py-3.5 focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10 transition placeholder-transparent"
+                  />
+                  <label
+                    htmlFor="phone"
+                    className="absolute left-4 top-3.5 text-gray-400 text-sm transition-all
+                      peer-placeholder-shown:top-3.5
+                      peer-placeholder-shown:text-sm
+                      peer-focus:-top-2
+                      peer-focus:text-xs
+                      peer-focus:text-lime-300
+                      peer-focus:bg-black
+                      peer-focus:px-1
+                      peer-[&:not(:placeholder-shown)]:-top-2
+                      peer-[&:not(:placeholder-shown)]:text-xs
+                      peer-[&:not(:placeholder-shown)]:bg-black
+                      peer-[&:not(:placeholder-shown)]:px-1"
+                  >
+                    Phone Number
+                  </label>
+                </div>
+
+                <Field id="company_name" label="Company Name" />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <SelectField
+                  id="timeframe"
+                  label="Project Timeframe"
+                  options={[
+                    "ASAP",
+                    "2–4 weeks",
+                    "1–3 months",
+                    "Flexible",
+                  ]}
+                />
+                <SelectField
+                  id="budget"
+                  label="Estimated Budget"
+                  options={[
+                    "$2k – $5k",
+                    "$5k – $10k",
+                    "$10k+",
+                    "Not sure yet",
+                  ]}
+                />
+              </div>
+
+              <Field
+                id="message"
+                label="Project Details"
+                textarea
+              />
+
               <input
                 type="text"
-                name="company"
+                name="bot_field"
                 tabIndex={-1}
                 autoComplete="off"
                 className="hidden"
@@ -128,13 +202,36 @@ export default function Contact() {
             </form>
           ) : (
             <div className="text-center py-10">
-              <div
-                className="mx-auto mb-4 h-12 w-12 rounded-full"
-                style={{
-                  backgroundColor: GREEN,
-                  boxShadow: "0 0 28px rgba(182,242,74,0.45)",
-                }}
-              />
+              <motion.svg
+                width="56"
+                height="56"
+                viewBox="0 0 52 52"
+                className="mx-auto mb-6"
+              >
+                <motion.circle
+                  cx="26"
+                  cy="26"
+                  r="25"
+                  fill="none"
+                  stroke={GREEN}
+                  strokeWidth="2"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.6 }}
+                />
+                <motion.path
+                  d="M14 27 L23 35 L38 18"
+                  fill="none"
+                  stroke={GREEN}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                />
+              </motion.svg>
+
               <div className="text-2xl font-extrabold text-white">
                 Message sent
               </div>
@@ -145,7 +242,6 @@ export default function Contact() {
           )}
         </motion.div>
 
-        {/* Trust footer */}
         <div className="mt-12 text-center text-xs text-gray-500 tracking-wide">
           Secure delivery • No spam • Real humans only
         </div>
@@ -154,7 +250,7 @@ export default function Contact() {
   );
 }
 
-/* ---------------- reusable field ---------------- */
+/* ---------------- fields ---------------- */
 
 function Field({ id, label, type = "text", textarea }) {
   return (
@@ -192,8 +288,46 @@ function Field({ id, label, type = "text", textarea }) {
           peer-[&:not(:placeholder-shown)]:-top-2
           peer-[&:not(:placeholder-shown)]:text-xs
           peer-[&:not(:placeholder-shown)]:bg-black
-          peer-[&:not(:placeholder-shown)]:px-1
-        "
+          peer-[&:not(:placeholder-shown)]:px-1"
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
+function SelectField({ id, label, options }) {
+  const [hasValue, setHasValue] = useState(false);
+
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        name={id}
+        required
+        defaultValue=""
+        onChange={(e) => setHasValue(Boolean(e.target.value))}
+        className="peer w-full rounded-2xl bg-black/60 text-white border border-white/15 px-4 py-3.5 focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10 transition"
+      >
+        <option value="" disabled hidden />
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+
+      <label
+        htmlFor={id}
+        className={`
+          absolute left-4 text-gray-400 transition-all duration-200
+          ${hasValue ? "-top-2 text-xs bg-black px-1" : "top-3.5 text-sm"}
+          peer-focus:-top-2
+          peer-focus:text-xs
+          peer-focus:text-lime-300
+          peer-focus:bg-black
+          peer-focus:px-1
+        `}
       >
         {label}
       </label>
