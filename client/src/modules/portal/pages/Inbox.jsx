@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   listMessages,
   updateMessageStatus,
@@ -8,7 +8,7 @@ import {
 } from "../../../lib/messagesApi";
 import { convertMessageToProject } from "../lib/projectsApi";
 
-export default function Inbox() {
+export default function Inbox({ profile }) {
   const [messages, setMessages] = useState([]);
   const [active, setActive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,16 +33,49 @@ export default function Inbox() {
 
   async function load() {
     setLoading(true);
-    setMessages(await listMessages());
+    let allMessages = await listMessages();
+    if (profile.role === "user") {
+      allMessages = allMessages.filter(
+        (m) =>
+          m.clientUid === profile.uid ||
+          m.email === profile.email
+      );
+    }
+    setMessages(allMessages);
     setLoading(false);
   }
 
-  async function openMessage(m) {
-    setActive(m);
-    if (!m.read) {
-      await markMessageRead(m.id);
-      await load();
+  const threads = useMemo(() => {
+    const map = new Map();
+    for (const m of messages) {
+      const threadId = m.threadId || m.id;
+      if (!map.has(threadId)) {
+        map.set(threadId, []);
+      }
+      map.get(threadId).push(m);
     }
+    // Sort messages in each thread by createdAt ascending
+    const sortedThreads = [];
+    for (const [threadId, msgs] of map.entries()) {
+      msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      sortedThreads.push({ threadId, messages: msgs });
+    }
+    // Sort threads by latest message createdAt descending
+    sortedThreads.sort(
+      (a, b) =>
+        new Date(b.messages[b.messages.length - 1].createdAt) -
+        new Date(a.messages[a.messages.length - 1].createdAt)
+    );
+    return sortedThreads;
+  }, [messages]);
+
+  async function openMessage(thread) {
+    setActive(thread);
+    const unreadMessages = thread.messages.filter((m) => !m.read);
+    for (const m of unreadMessages) {
+      await markMessageRead(m.id);
+    }
+    await load();
   }
 
   async function remove(id) {
@@ -52,31 +85,76 @@ export default function Inbox() {
     await load();
   }
 
-  const alreadyConverted = active?.convertedToProject === true;
+  // Find the earliest client-originated message in the thread (bulletproof)
+  let clientMessageId = null;
+  let firstClientMessage = null;
+
+  if (active?.messages?.length) {
+    const sorted = [...active.messages].sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+
+    // Priority 1: explicit clientUid
+    firstClientMessage = sorted.find((m) => !!m.clientUid);
+
+    // Priority 2: role or sender hint
+    if (!firstClientMessage) {
+      firstClientMessage = sorted.find(
+        (m) => m.role === "user" || m.from === "client"
+      );
+    }
+
+    // Priority 3: fallback to first message in thread
+    if (!firstClientMessage) {
+      firstClientMessage = sorted[0];
+    }
+
+    if (firstClientMessage?.id) {
+      clientMessageId = firstClientMessage.id;
+    }
+  }
+
+  // Thread is converted if ANY message in the thread is converted
+  const alreadyConverted = !!(active?.messages?.some((m) => m.convertedToProject === true));
 
   function openConvertModal() {
-    if (!active) return;
-    // prefill lightly from the message
-    setForm((prev) => ({
-      ...prev,
-      title: prev.title || `${active.name || "Client"} Project`,
-      pages: prev.pages || "1",
-      goal: prev.goal || "",
-      domain: prev.domain || "",
-      budget: prev.budget || "",
-      timeline: prev.timeline || "",
-      notes: prev.notes || "",
-    }));
+    if (!active) {
+      alert("No thread selected");
+      return;
+    }
+
+    if (!clientMessageId || !firstClientMessage) {
+      console.warn("Convert blocked — missing client message", {
+        active,
+        clientMessageId,
+        firstClientMessage,
+      });
+      alert("Cannot convert this thread — no client message found.");
+      return;
+    }
+
+    setForm({
+      title: `${firstClientMessage.name || "Client"} Project`,
+      goal: "",
+      pages: "1",
+      domain: "",
+      graphics: false,
+      budget: "",
+      timeline: "",
+      notes: firstClientMessage.message || "",
+    });
+
     setShowConvert(true);
   }
 
   async function convertToProject() {
-    if (!active || alreadyConverted) return;
+    if (converting) return;
+    if (!clientMessageId || !firstClientMessage || alreadyConverted) return;
 
     try {
       setConverting(true);
 
-      const projectId = await convertMessageToProject(active, {
+      const projectId = await convertMessageToProject(firstClientMessage, {
         title: form.title,
         goal: form.goal,
         pages: form.pages,
@@ -87,10 +165,11 @@ export default function Inbox() {
         notes: form.notes,
       });
 
-      await markMessageConverted(active.id, projectId);
-      await updateMessageStatus(active.id, "converted");
+      await markMessageConverted(clientMessageId, projectId);
+      await updateMessageStatus(clientMessageId, "converted");
 
       setShowConvert(false);
+      alert("Project created successfully!");
       setActive(null);
       await load();
     } catch (err) {
@@ -107,61 +186,109 @@ export default function Inbox() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-      {/* MESSAGE LIST */}
+      {/* THREAD LIST */}
       <div className="border border-slate-800 rounded-lg overflow-hidden">
-        {messages.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => openMessage(m)}
-            className={`w-full text-left px-4 py-3 border-b border-slate-800 hover:bg-slate-900 ${
-              active?.id === m.id ? "bg-slate-900" : ""
-            }`}
-          >
-            <div className="flex justify-between">
-              <span className={m.read ? "text-slate-200" : "text-emerald-300"}>
-                {m.name || "Anonymous"}
-              </span>
-              <span className="text-xs text-slate-500">
-                {m.convertedToProject ? "converted" : m.status}
-              </span>
-            </div>
-            <div className="text-xs text-slate-400 truncate">{m.message}</div>
-          </button>
-        ))}
+        {threads.map((thread) => {
+          const lastMessage = thread.messages[thread.messages.length - 1];
+          const anyUnread = thread.messages.some((m) => !m.read);
+          return (
+            <button
+              key={thread.threadId}
+              onClick={() => openMessage(thread)}
+              className={`w-full text-left px-4 py-3 border-b border-slate-800 hover:bg-slate-900 ${
+                active?.threadId === thread.threadId ? "bg-slate-900" : ""
+              }`}
+            >
+              <div className="flex justify-between">
+                <span className={anyUnread ? "text-emerald-300" : "text-slate-200"}>
+                  {lastMessage.name || "Anonymous"}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {lastMessage.convertedToProject ? "converted" : lastMessage.status}
+                </span>
+              </div>
+              <div className="text-xs text-slate-400 truncate">{lastMessage.message}</div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* MESSAGE DETAIL */}
-      <div className="md:col-span-2 border border-slate-800 rounded-lg p-4">
+      {/* THREAD DETAIL */}
+      <div className="md:col-span-2 border border-slate-800 rounded-lg p-4 flex flex-col h-full">
         {!active ? (
           <div className="text-slate-500">Select a message</div>
         ) : (
           <>
-            <h2 className="text-lg font-semibold">{active.name}</h2>
-            <div className="text-sm text-slate-400">{active.email}</div>
-
-            <div className="mt-3 bg-slate-950 border border-slate-800 rounded p-3 text-sm">
-              {active.message}
+            <div className="flex flex-col space-y-4 overflow-y-auto mb-4 max-h-[60vh] pr-2">
+              {active.messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className="bg-slate-950 border border-slate-800 rounded p-3 text-sm"
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="font-semibold text-slate-200">
+                      {msg.name || "Anonymous"}
+                    </div>
+                    <div className="text-xs text-slate-400 italic">
+                      {msg.clientUid ? "Client" : "Admin"}
+                    </div>
+                  </div>
+                  <div>{msg.message}</div>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <button
-                disabled={alreadyConverted}
-                onClick={openConvertModal}
-                className={`px-3 py-1 text-xs rounded border ${
-                  alreadyConverted
-                    ? "border-slate-700 text-slate-500 cursor-not-allowed"
-                    : "border-emerald-700 text-emerald-400 hover:bg-emerald-900/20"
-                }`}
-              >
-                {alreadyConverted ? "Already Converted" : "Convert → Project"}
-              </button>
+            <div className="mt-auto">
+            <div className="mt-4 flex items-center gap-2">
+              {profile.role === "admin" && active && (
+                <button
+                  onClick={openConvertModal}
+                  disabled={!clientMessageId || alreadyConverted}
+                  className={`px-3 py-1 text-xs rounded border transition ${
+                    !clientMessageId
+                      ? "border-slate-700 text-slate-500 cursor-not-allowed"
+                      : alreadyConverted
+                      ? "border-slate-700 text-slate-500 cursor-not-allowed"
+                      : "border-emerald-600 text-emerald-400 hover:bg-emerald-900/20"
+                  }`}
+                >
+                  {!clientMessageId
+                    ? "No Client Message"
+                    : alreadyConverted
+                    ? "Already Converted"
+                    : "Convert to Project"}
+                </button>
+              )}
 
-              <button
-                onClick={() => remove(active.id)}
-                className="ml-auto px-3 py-1 text-xs rounded border border-red-700 text-red-400"
-              >
-                Delete
-              </button>
+              {profile.role === "admin" && active && firstClientMessage && (
+                <button
+                  onClick={() => remove(firstClientMessage.id)}
+                  className="ml-auto px-3 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/20"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+
+              {/* Reply box */}
+              <div className="mt-4">
+                <label className="block text-xs text-slate-400 mb-1">
+                  Reply
+                </label>
+                <textarea
+                  rows={3}
+                  disabled
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none resize-none"
+                  placeholder="Reply feature coming soon"
+                />
+                <button
+                  disabled
+                  // TODO: wire sendMessage()
+                  className="mt-2 px-4 py-2 text-xs font-semibold rounded bg-emerald-500 text-black opacity-60 cursor-not-allowed"
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </>
         )}

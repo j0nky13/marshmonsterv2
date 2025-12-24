@@ -8,6 +8,7 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -27,6 +28,8 @@ export async function createMessage(payload) {
     message: payload.message,
     source: payload.source || "unknown",
     page: payload.page || "",
+    clientUid: payload.clientUid || null,
+    senderRole: payload.senderRole || "public",
     status: "new",
     read: false,
     convertedToProject: false,
@@ -49,6 +52,18 @@ export async function listMessages() {
     id: d.id,
     ...d.data(),
   }));
+}
+
+/* ---------------- LIST BY CLIENT ---------------- */
+export async function listMessagesByClient(clientUid) {
+  if (!clientUid) return [];
+  const q = query(
+    collection(db, COLLECTION),
+    where("clientUid", "==", clientUid),
+    orderBy("createdAt", "desc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 /**
@@ -103,5 +118,21 @@ export async function markMessageConverted(id, projectId) {
   await updateDoc(ref, {
     convertedToProject: true,
     projectId,
+  });
+}
+
+/* ---------------- PORTAL REPLY ---------------- */
+export async function sendPortalReply({ threadId, message, user }) {
+  if (!threadId || !message || !user?.uid) {
+    throw new Error("Missing reply data");
+  }
+
+  const ref = doc(db, COLLECTION, threadId);
+  await updateDoc(ref, {
+    lastReply: message,
+    lastReplyBy: user.uid,
+    lastReplyRole: user.role,
+    status: "open",
+    updatedAt: serverTimestamp(),
   });
 }

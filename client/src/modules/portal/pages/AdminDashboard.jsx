@@ -67,7 +67,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await logoutFn();
-    nav("/portal/login", { replace: true });
+    nav("/portal", { replace: true });
   };
 
   // ─────────────────────────────────────────

@@ -1,16 +1,31 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listProjects } from "../lib/projectsApi";
-
-export default function Projects() {
+export default function Projects({ profile }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const role = profile?.role || "admin";
+  const isAdmin = role === "admin" || role === "staff";
+
+  const visibleProjects = isAdmin
+    ? projects
+    : projects.filter(
+        (p) =>
+          (p.clientUid === profile.uid) ||
+          (p.clientEmail === profile.email)
+      );
+
   useEffect(() => {
     async function load() {
-      const data = await listProjects();
-      setProjects(data);
-      setLoading(false);
+      try {
+        const data = await listProjects();
+        setProjects(data);
+      } catch (err) {
+        console.error("Failed to load projects", err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
@@ -20,51 +35,88 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Projects</h1>
+    <div className="space-y-6 max-w-5xl">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-semibold">Projects</h1>
+        <p className="text-sm text-slate-400 mt-1">
+          {isAdmin
+            ? "All active and archived client projects"
+            : "Your project status and updates"}
+        </p>
+      </div>
 
-      {projects.length === 0 && (
-        <div className="text-slate-500 text-sm">No projects yet.</div>
+      {visibleProjects.length === 0 && (
+        <div className="text-slate-500 text-sm">
+          No projects available.
+        </div>
       )}
 
-      <div className="space-y-2">
-        {projects.map((p) => (
+      {/* PROJECT LIST */}
+      <div className="divide-y divide-white/10 rounded-xl border border-white/10 bg-black/30">
+        {visibleProjects.map((p) => (
           <Link
             key={p.id}
             to={`/portal/projects/${p.id}`}
-            className="block rounded-lg border border-white/10 bg-black/40 px-4 py-3 hover:bg-black/60 transition"
+            className="block px-5 py-4 hover:bg-white/5 transition"
           >
-            <div className="flex justify-between items-start gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              {/* LEFT */}
               <div className="space-y-1">
-                <div className="font-medium text-slate-200">
+                <div className="text-sm font-medium text-slate-200">
                   {p.title || "Untitled Project"}
                 </div>
 
                 <div className="text-xs text-slate-400">
-                  {p.clientName || "Unknown Client"}
+                  {isAdmin
+                    ? p.clientName || "Unknown Client"
+                    : "Project with Marsh Monster"}
                 </div>
 
-                <div className="text-xs text-slate-500">
-                  {p.goal
-                    ? p.goal
-                    : "No project goal defined yet"}
-                </div>
-              </div>
-
-              <div className="text-right text-xs text-slate-500 shrink-0">
-                {p.source === "message" && (
-                  <div className="text-emerald-400">
-                    Inbox Lead
+                {p.goal && (
+                  <div className="text-xs text-slate-500 line-clamp-1">
+                    {p.goal}
                   </div>
                 )}
-                <div className="mt-1">
-                  {p.status || "active"}
-                </div>
+              </div>
+
+              {/* RIGHT */}
+              <div className="flex items-center gap-4 shrink-0">
+                {/* STATUS */}
+                <StatusPill status={p.status} />
+
+                {/* ADMIN META */}
+                {isAdmin && p.source === "message" && (
+                  <span className="text-xs text-emerald-400">
+                    Inbox Lead
+                  </span>
+                )}
               </div>
             </div>
           </Link>
         ))}
       </div>
     </div>
+  );
+}
+
+/* ---------------- helpers ---------------- */
+
+function StatusPill({ status }) {
+  const map = {
+    active: "bg-emerald-500/15 text-emerald-400",
+    paused: "bg-yellow-500/15 text-yellow-400",
+    completed: "bg-blue-500/15 text-blue-400",
+    archived: "bg-slate-500/15 text-slate-400",
+  };
+
+  const cls = map[status] || "bg-slate-500/15 text-slate-400";
+
+  return (
+    <span
+      className={`px-3 py-1 rounded-full text-xs font-medium ${cls}`}
+    >
+      {status || "active"}
+    </span>
   );
 }

@@ -1,58 +1,72 @@
+import { db } from "../../../lib/firebase";
 import {
-  collection,
   addDoc,
-  serverTimestamp,
-  query,
-  where,
+  collection,
   getDocs,
+  query,
+  orderBy,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  where,
   limit,
 } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
-
-const INVITES = "invites";
 
 /**
- * Create an invite record (admin-only by rules)
- * role should be: "staff" | "user" | "admin" (admin allowed here, but we still guard self-creation elsewhere)
+ * Create a new invite
  */
-export async function createInvite({ email, role = "staff" }) {
-  if (!db) throw new Error("Firestore not initialized");
-  if (!email) throw new Error("Email is required");
-
-  const clean = String(email).trim().toLowerCase();
-
-  // prevent spam/duplicates: if an active invite exists, reuse it
-  const q = query(
-    collection(db, INVITES),
-    where("email", "==", clean),
-    where("status", "==", "pending"),
-    limit(1)
-  );
-  const snap = await getDocs(q);
-  if (!snap.empty) {
-    const existing = snap.docs[0];
-    return { id: existing.id, ...existing.data() };
-  }
-
-  const docRef = await addDoc(collection(db, INVITES), {
-    email: clean,
+export async function createInvite({ email, role }) {
+  const ref = collection(db, "invites");
+  const docRef = await addDoc(ref, {
+    email: email.toLowerCase(),
     role,
     status: "pending",
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    resentAt: null,
   });
 
   return { id: docRef.id };
 }
 
+/**
+ * List invites (admin)
+ */
+export async function listInvites() {
+  const q = query(collection(db, "invites"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Mark invite resent (admin)
+ */
+export async function markInviteResent(inviteId) {
+  const ref = doc(db, "invites", inviteId);
+  await updateDoc(ref, {
+    resentAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Revoke invite (admin) - soft revoke
+ */
+export async function revokeInvite(inviteId) {
+  const ref = doc(db, "invites", inviteId);
+  await updateDoc(ref, {
+    status: "revoked",
+  });
+}
+
+/**
+ * Find a pending invite by email
+ * Used during auth/login
+ */
 export async function findPendingInviteByEmail(email) {
-  if (!db) throw new Error("Firestore not initialized");
   if (!email) return null;
 
-  const clean = String(email).trim().toLowerCase();
   const q = query(
-    collection(db, INVITES),
-    where("email", "==", clean),
+    collection(db, "invites"),
+    where("email", "==", email.toLowerCase()),
     where("status", "==", "pending"),
     limit(1)
   );

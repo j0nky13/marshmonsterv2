@@ -1,4 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LogOut, User } from "lucide-react";
+import { logout } from "../lib/auth"; // ✅ adjust path if needed
 
 const GREEN = "#B6F24A";
 
@@ -10,16 +12,34 @@ const nav = [
   { label: "Settings", to: "/portal/settings" },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
+  const navigate = useNavigate();
+
+  // TEMP user placeholder – wire to profile hook later
+  const user = {
+    name: "Admin User",
+    email: "admin@marshmonster.io",
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logout();            // 🔐 Firebase sign out
+      onNavigate?.();            // 📱 close mobile sidebar if open
+      navigate("/portal/login"); // 🚪 redirect to login
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   return (
-    <aside
-      className="w-64 bg-[#0c1118] border-r flex flex-col"
-      style={{ borderColor: "rgba(182,242,74,0.15)" }}
+    <div
+      className="flex flex-col h-full bg-[#0A0A0A]"
+      style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}
     >
-      {/* Header (LOCK HEIGHT to match Topbar) */}
+      {/* Header / Brand */}
       <div
-        className="h-16 px-6 border-b flex flex-col justify-center"
-        style={{ borderColor: "rgba(182,242,74,0.15)" }}
+        className="h-16 px-6 flex flex-col justify-center border-b"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
       >
         <div
           className="text-xl font-bold tracking-wide leading-none"
@@ -39,6 +59,7 @@ export default function Sidebar() {
             key={n.to}
             to={n.to}
             end={n.end}
+            onClick={onNavigate}
             className={({ isActive }) =>
               `
                 block rounded-lg px-4 py-2 text-sm transition
@@ -51,7 +72,9 @@ export default function Sidebar() {
             }
             style={({ isActive }) => ({
               color: isActive ? GREEN : "#cbd5e1",
-              backgroundColor: isActive ? "rgba(182,242,74,0.12)" : "transparent",
+              backgroundColor: isActive
+                ? "rgba(182,242,74,0.12)"
+                : "transparent",
             })}
           >
             {n.label}
@@ -59,13 +82,49 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* User + Sign out */}
       <div
-        className="px-6 py-4 border-t text-xs text-slate-500"
-        style={{ borderColor: "rgba(182,242,74,0.15)" }}
+        className="px-4 py-4 border-t"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
       >
-        Marsh Monster • v0.1.0
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="h-9 w-9 rounded-full flex items-center justify-center"
+            style={{
+              backgroundColor: "rgba(182,242,74,0.15)",
+              color: GREEN,
+            }}
+          >
+            <User size={16} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold truncate text-slate-200">
+              {user.name}
+            </div>
+            <div className="text-xs text-slate-500 truncate">
+              {user.email}
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSignOut}
+          className="
+            w-full flex items-center justify-center gap-2
+            rounded-lg px-3 py-2 text-sm
+            text-slate-300
+            border border-white/10
+            hover:bg-white/5 transition
+          "
+        >
+          <LogOut size={16} />
+          Sign out
+        </button>
+
+        <div className="mt-3 text-center text-xs text-slate-500">
+          Marsh Monster • v0.1.0
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }

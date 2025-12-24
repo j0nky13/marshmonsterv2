@@ -7,7 +7,7 @@ import {
 } from "firebase/auth";
 
 import { auth } from "../../../lib/firebase";
-import { findPendingInviteByEmail } from "./invitesApi";
+import { findPendingInviteByEmail } from "./invitesApi"; // ✅ RESTORED
 import { ensureUserProfile } from "./profile";
 
 const STORAGE_KEY = "mm_emailForSignIn";
@@ -33,7 +33,7 @@ export async function login(email) {
 
 /**
  * OTP Step 2: complete login when user opens email link
- * ALSO: auto-provision /users/{uid} using invite role or default "staff"
+ * Auto-provisions /users/{uid}
  */
 export async function completeEmailLogin() {
   const href = window.location.href;
@@ -48,13 +48,16 @@ export async function completeEmailLogin() {
   const result = await signInWithEmailLink(auth, email, href);
   window.localStorage.removeItem(STORAGE_KEY);
 
-  // ✅ NEW: auto-provision profile
   try {
     const invite = await findPendingInviteByEmail(email);
     const role = invite?.role || "staff";
-    await ensureUserProfile({ uid: result.user.uid, email: result.user.email, role });
+
+    await ensureUserProfile({
+      uid: result.user.uid,
+      email: result.user.email,
+      role,
+    });
   } catch (e) {
-    // If rules block or something else, surface it—this is important during setup
     console.error("ensureUserProfile failed:", e);
   }
 
@@ -69,7 +72,7 @@ export function onUserChanged(cb) {
   return onAuthStateChanged(auth, cb);
 }
 
-// Backwards-compat alias (PortalApp.jsx expects this name)
+// Backwards-compat alias
 export const onUserChange = onUserChanged;
 
 export async function logout() {

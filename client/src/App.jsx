@@ -42,37 +42,38 @@ function AppWrapper() {
   const showIntro = false;
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
-      <ScrollToTop />
+  <>
+    <ScrollToTop />
 
-      {/* NAVBAR (site only) */}
-      {!isPortalRoute && <Navbar introActive={showIntro} />}
+    {/* SITE ROUTES */}
+    {!isPortalRoute && (
+      <div className="min-h-screen flex flex-col bg-black text-white">
+        <Navbar introActive={showIntro} />
 
-      {/* INTRO SPLASH — intentionally disabled */}
-      {/*
-      {!isPortalRoute && showIntro && (
-        <IntroSplash onFinish={handleIntroFinish} />
-      )}
-      */}
+        <main className="flex-1 bg-black">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQpage />} />
+            <Route path="*" element={<NotFound404 />} />
+          </Routes>
+        </main>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 bg-black">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/faq" element={<FAQpage />} />
-          <Route path="/portal/*" element={<PortalApp />} />
-          <Route path="*" element={<NotFound404 />} />
-        </Routes>
-      </main>
+        <Footer />
+      </div>
+    )}
 
-      {/* FOOTER (site only, ALWAYS visible) */}
-      {!isPortalRoute && <Footer />}
-    </div>
-  );
+    {/* PORTAL ROUTES — COMPLETELY ISOLATED */}
+    {isPortalRoute && (
+      <Routes>
+        <Route path="/portal/*" element={<PortalApp />} />
+      </Routes>
+    )}
+  </>
+);
 }
 
 /* ---------------- root ---------------- */

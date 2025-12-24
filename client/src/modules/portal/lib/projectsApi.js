@@ -1,85 +1,139 @@
+import { db } from "../../../lib/firebase";
 import {
   collection,
-  addDoc,
-  getDocs,
-  getDoc,
   query,
-  orderBy,
-  doc,
-  updateDoc,
-  serverTimestamp,
   where,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
 
-const COLLECTION = "projects";
+/*
+  NOTE:
+  - This file MUST stay pure JS (no JSX, no React).
+  - All functions here are Firestore helpers used by portal pages.
+*/
 
-/* ---------------- LIST ---------------- */
+/* ---------------- LIST (ADMIN) ---------------- */
 export async function listProjects() {
-  const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
+  const projectsCol = collection(db, "projects");
+  const snap = await getDocs(projectsCol);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/* ---------------- LIST BY CLIENT UID (CUSTOMER) ---------------- */
+export async function listProjectsByClient(clientUid) {
+  if (!clientUid) return [];
+  const projectsCol = collection(db, "projects");
+  const q = query(projectsCol, where("clientUid", "==", clientUid));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 /* ---------------- GET ---------------- */
 export async function getProject(id) {
-  const ref = doc(db, COLLECTION, id);
+  if (!id) return null;
+  const ref = doc(db, "projects", id);
   const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error("Project not found");
+  if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
 }
 
 /* ---------------- UPDATE ---------------- */
 export async function updateProject(id, updates) {
-  const ref = doc(db, COLLECTION, id);
-  await updateDoc(ref, {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  });
+  if (!id) throw new Error("updateProject: missing id");
+  if (!updates || typeof updates !== "object") {
+    throw new Error("updateProject: updates must be an object");
+  }
+  const ref = doc(db, "projects", id);
+  await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
 }
 
-/* ---------------- CONVERT MESSAGE → PROJECT ---------------- */
-export async function convertMessageToProject(message, form) {
-  // Guard against double conversion
-  const q = query(
-    collection(db, COLLECTION),
-    where("sourceMessageId", "==", message.id)
-  );
-  const existing = await getDocs(q);
-  if (!existing.empty) {
-    throw new Error("Message already converted to a project");
+/* ---------------- SUBSCRIBE TO SINGLE PROJECT ---------------- */
+export function subscribeToProject(id, callback) {
+  if (!id) {
+    callback(null);
+    return () => {};
   }
 
-  const budgetNumber =
-    form?.budget === "" || form?.budget == null ? null : Number(form.budget);
+  const ref = doc(db, "projects", id);
+  const unsubscribe = onSnapshot(
+    ref,
+    (snap) => {
+      if (snap.exists()) callback({ id: snap.id, ...snap.data() });
+      else callback(null);
+    },
+    (err) => {
+      console.error("subscribeToProject error:", err);
+      callback(null);
+    }
+  );
 
-  const pagesNumber =
-    form?.pages === "" || form?.pages == null ? 1 : Number(form.pages);
+  return unsubscribe;
+}
 
-  const docRef = await addDoc(collection(db, COLLECTION), {
-    title: form?.title?.trim() || form?.siteName?.trim() || "New Website Project",
+/* ---------------- COMPAT: OLD CALL SITES ----------------
+   Some older pages referenced profile.uid / profileUid.
+   Keep this export so those pages don't crash, but prefer clientUid.
+---------------------------------------------------------- */
+export async function listProjectsForProfile(profile) {
+  const uid = profile?.uid;
+  if (!uid) return [];
 
-    clientName: message.name || "Anonymous",
-    clientEmail: message.email,
-    description: message.message,
+  const projectsCol = collection(db, "projects");
+  // First try modern field
+  const q1 = query(projectsCol, where("clientUid", "==", uid));
+  const snap1 = await getDocs(q1);
+  if (!snap1.empty) return snap1.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // requirements
-    pages: Number.isFinite(pagesNumber) ? pagesNumber : 1,
-    goal: form?.goal || "",
-    domain: form?.domain || "",
-    graphics: !!form?.graphics,
+  // Fallback for legacy field name
+  const q2 = query(projectsCol, where("profileUid", "==", uid));
+  const snap2 = await getDocs(q2);
+  return snap2.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
 
-    budget: Number.isFinite(budgetNumber) ? budgetNumber : null,
-    timeline: form?.timeline || "",
-    notes: form?.notes || "",
+/* ---------------- CONVERT MESSAGE -> PROJECT ----------------
+   This is used by Inbox to "Convert to project".
+   - Creates a project document.
+   - Marks the message as converted.
 
-    status: "active",
-    source: "message",
-    sourceMessageId: message.id,
+   Assumes your contact form writes to collection: "messages".
+---------------------------------------------------------- */
+export async function convertMessageToProject(messageId, projectInput = {}) {
+  if (!messageId) throw new Error("convertMessageToProject: missing messageId");
+
+  // Create project
+  const projectsCol = collection(db, "projects");
+  const created = await addDoc(projectsCol, {
+    title: projectInput.title || projectInput.clientName || "New Project",
+    description: projectInput.description || "",
+
+    // Client identity (prefer these fields if provided)
+    clientUid: projectInput.clientUid || null,
+    clientName: projectInput.clientName || projectInput.name || "",
+    clientEmail: projectInput.clientEmail || projectInput.email || "",
+
+    status: projectInput.status || "active",
+    phase: projectInput.phase || "discovery",
+
+    // Link back to the original lead/message
+    sourceMessageId: messageId,
 
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  return docRef.id;
+  // Mark message converted
+  const msgRef = doc(db, "messages", messageId);
+  await updateDoc(msgRef, {
+    status: "converted",
+    convertedAt: serverTimestamp(),
+    projectId: created.id,
+  });
+
+  return { projectId: created.id };
 }
