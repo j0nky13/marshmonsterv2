@@ -19,7 +19,7 @@ export default function Portfolio() {
       details:
         "We engineered a fast, compliant marketing surface with future authentication hooks, modular sections, and strict Lighthouse targets across devices.",
       cover: "/portfolio-1.png",
-      url: "https://goliath-app-hz6rj.ondigitalocean.app",
+      url: "https://efferentlabs.com",
     },
     {
       id: "gathering",
@@ -42,6 +42,17 @@ export default function Portfolio() {
         "Optimized for real-world users: fast loads, prominent CTAs, service-area SEO, and minimal friction to contact.",
       cover: "/portfolio-2.png",
       url: "https://breeze-shooters-app-nt9ww.ondigitalocean.app",
+    },
+     {
+      id: "dawg",
+      title: "DawgBites",
+      role: "Local Food Vendor",
+      summary:
+        "Focus on Mobile First for converting visits into leads.",
+      details:
+        "Designed to convert leads, SEO optimized and full backend dashboard for tracking sales trends, forecasts and also lead tracking/database.",
+      cover: "/portfolio-6.png",
+      url: "https://dawgbiteschs.com",
     },
   ];
 
