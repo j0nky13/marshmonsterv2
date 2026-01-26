@@ -67,11 +67,11 @@ export default function NotFound404() {
         <div className="mt-10 text-sm text-slate-400">
           <p>
             Or explore our {" "}
-            <Link to="/work" className="font-medium text-lime-300 underline-offset-4 hover:text-lime-200 hover:underline">
+            <Link to="/portfolio" className="font-medium text-lime-300 underline-offset-4 hover:text-lime-200 hover:underline">
               portfolio
             </Link>{" "}
             and {" "}
-            <Link to="/services" className="font-medium text-lime-300 underline-offset-4 hover:text-lime-200 hover:underline">
+            <Link to="/pricing" className="font-medium text-lime-300 underline-offset-4 hover:text-lime-200 hover:underline">
               services
             </Link>
             .
