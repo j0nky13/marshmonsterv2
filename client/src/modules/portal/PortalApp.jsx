@@ -13,6 +13,9 @@ import Stats from "./pages/Stats";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
+import Leads from "./pages/Leads";
+import LeadDetail from "./pages/LeadDetail";
+
 
 export default function PortalApp() {
   const [authUser, setAuthUser] = useState(null);
@@ -97,6 +100,8 @@ export default function PortalApp() {
           element={<ProjectDetail profile={profile} />}
         />
         <Route path="/inbox" element={<Inbox profile={profile} />} />
+        <Route path="/leads" element={<Leads />} />
+        <Route path="leads/:id" element={<LeadDetail profile={profile} />} />
         <Route path="/stats" element={<Stats profile={profile} />} />
         <Route path="/settings" element={<Settings profile={profile} />} />
       </Route>

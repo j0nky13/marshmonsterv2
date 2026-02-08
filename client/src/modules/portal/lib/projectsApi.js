@@ -137,3 +137,39 @@ export async function convertMessageToProject(messageId, projectInput = {}) {
 
   return { projectId: created.id };
 }
+
+export async function convertLeadToProject(lead) {
+  if (!lead) throw new Error("Missing lead");
+
+  const projectsCol = collection(db, "projects");
+
+  const created = await addDoc(projectsCol, {
+    title: lead.company || lead.name || "New Project",
+    description: lead.notes || "",
+
+    clientName: lead.name,
+    clientEmail: lead.email,
+    clientPhone: lead.phone || "",
+
+    clientUid: null, // filled later if they become a portal user
+
+    status: "active",
+    phase: "discovery",
+
+    sourceLeadId: lead.id,
+
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  // mark lead converted
+  const leadRef = doc(db, "leads", lead.id);
+
+  await updateDoc(leadRef, {
+    status: "converted",
+    convertedToProjectId: created.id,
+    updatedAt: serverTimestamp(),
+  });
+
+  return created.id;
+}
