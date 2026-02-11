@@ -9,6 +9,7 @@ const nav = [
   { label: "Projects", to: "/portal/projects" },
   { label: "Inbox", to: "/portal/inbox" },
   { label: "Leads", to: "/portal/leads" },
+  { label: "Pipeline", to: "/portal/pipeline" },
   { label: "Stats", to: "/portal/stats" },
   { label: "Settings", to: "/portal/settings" },
 ];
@@ -19,7 +20,7 @@ export default function Sidebar({ onNavigate }) {
   // TEMP user placeholder – wire to profile hook later
   const user = {
     name: "Admin User",
-    email: "admin@marshmonster.io",
+    // email: "admin@marshmonster.io",
   };
 
   const handleSignOut = async () => {

@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
+import Pipeline from "./pages/Pipeline";
 
 
 export default function PortalApp() {
@@ -102,6 +103,7 @@ export default function PortalApp() {
         <Route path="/inbox" element={<Inbox profile={profile} />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="leads/:id" element={<LeadDetail profile={profile} />} />
+        <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/stats" element={<Stats profile={profile} />} />
         <Route path="/settings" element={<Settings profile={profile} />} />
       </Route>

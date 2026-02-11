@@ -61,6 +61,7 @@ export async function createLead(data) {
     company: data.company || "",
 
     status: "new",
+    pipelineStage: "new", 
     source: data.source || "manual",
     notes: data.notes || "",
 
@@ -74,10 +75,28 @@ export async function createLead(data) {
 
 /* ---------- UPDATE ---------- */
 export async function updateLead(id, updates) {
+  if (!id) throw new Error("updateLead missing id");
+
   const ref = doc(db, "leads", id);
 
   await updateDoc(ref, {
     ...updates,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/* ---------- PIPELINE STAGE ---------- */
+/*
+This is what your Pipeline UI NEEDS.
+Without this — stage changes silently fail.
+*/
+export async function updateLeadStage(id, stage) {
+  if (!id) throw new Error("updateLeadStage missing id");
+
+  const ref = doc(db, "leads", id);
+
+  await updateDoc(ref, {
+    pipelineStage: stage,
     updatedAt: serverTimestamp(),
   });
 }
