@@ -1,33 +1,37 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { LogOut, User } from "lucide-react";
-import { logout } from "../lib/auth"; // ✅ adjust path if needed
+import { logout } from "../lib/auth";
 
 const GREEN = "#B6F24A";
 
-const nav = [
-  { label: "Dashboard", to: "/portal", end: true },
-  { label: "Projects", to: "/portal/projects" },
-  { label: "Inbox", to: "/portal/inbox" },
-  { label: "Leads", to: "/portal/leads" },
-  { label: "Pipeline", to: "/portal/pipeline" },
-  { label: "Stats", to: "/portal/stats" },
-  { label: "Settings", to: "/portal/settings" },
-];
-
-export default function Sidebar({ onNavigate }) {
+export default function Sidebar({ profile, onNavigate }) {
   const navigate = useNavigate();
 
-  // TEMP user placeholder – wire to profile hook later
-  const user = {
-    name: "Admin User",
-    // email: "admin@marshmonster.io",
-  };
+  const role = profile?.role || "user";
+  const isPrivileged = role === "admin" || role === "staff";
+
+  const nav = [
+    { label: "Dashboard", to: "/portal", end: true },
+    { label: "Projects", to: "/portal/projects" },
+    { label: "Inbox", to: "/portal/inbox" },
+
+    // 🔐 Hidden from normal users
+    ...(isPrivileged
+      ? [
+          { label: "Leads", to: "/portal/leads" },
+          { label: "Pipeline", to: "/portal/pipeline" },
+          { label: "Stats", to: "/portal/stats" },
+        ]
+      : []),
+
+    { label: "Settings", to: "/portal/settings" },
+  ];
 
   const handleSignOut = async () => {
     try {
-      await logout();            // 🔐 Firebase sign out
-      onNavigate?.();            // 📱 close mobile sidebar if open
-      navigate("/portal/login"); // 🚪 redirect to login
+      await logout();
+      onNavigate?.();
+      navigate("/portal/login");
     } catch (err) {
       console.error("Logout failed:", err);
     }
@@ -38,7 +42,7 @@ export default function Sidebar({ onNavigate }) {
       className="flex flex-col h-full bg-[#0A0A0A]"
       style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}
     >
-      {/* Header / Brand */}
+      {/* HEADER */}
       <div
         className="h-16 px-6 flex flex-col justify-center border-b"
         style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -49,12 +53,13 @@ export default function Sidebar({ onNavigate }) {
         >
           Marsh Monster
         </div>
+
         <div className="text-xs text-slate-500 mt-1">
           Internal Portal
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* NAV */}
       <nav className="flex-1 px-4 py-4 space-y-1">
         {nav.map((n) => (
           <NavLink
@@ -64,13 +69,13 @@ export default function Sidebar({ onNavigate }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               `
-                block rounded-lg px-4 py-2 text-sm transition
-                ${
-                  isActive
-                    ? "shadow-[inset_0_0_0_1px_rgba(182,242,74,0.35)]"
-                    : "hover:bg-white/5"
-                }
-              `
+              block rounded-lg px-4 py-2 text-sm transition
+              ${
+                isActive
+                  ? "shadow-[inset_0_0_0_1px_rgba(182,242,74,0.35)]"
+                  : "hover:bg-white/5"
+              }
+            `
             }
             style={({ isActive }) => ({
               color: isActive ? GREEN : "#cbd5e1",
@@ -84,7 +89,7 @@ export default function Sidebar({ onNavigate }) {
         ))}
       </nav>
 
-      {/* User + Sign out */}
+      {/* USER */}
       <div
         className="px-4 py-4 border-t"
         style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -99,12 +104,14 @@ export default function Sidebar({ onNavigate }) {
           >
             <User size={16} />
           </div>
+
           <div className="min-w-0">
             <div className="text-sm font-semibold truncate text-slate-200">
-              {user.name}
+              {profile?.name || "Portal User"}
             </div>
+
             <div className="text-xs text-slate-500 truncate">
-              {user.email}
+              {profile?.email}
             </div>
           </div>
         </div>
