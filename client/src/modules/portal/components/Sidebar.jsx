@@ -4,28 +4,28 @@ import { logout } from "../lib/auth";
 
 const GREEN = "#B6F24A";
 
-export default function Sidebar({ profile, onNavigate }) {
+const NAV_ALL = [
+  { label: "Dashboard", to: "/portal", end: true },
+  { label: "Projects", to: "/portal/projects" },
+  { label: "Inbox", to: "/portal/inbox" },
+
+  // staff/admin only
+  { label: "Leads", to: "/portal/leads", roles: ["admin", "staff"] },
+  { label: "Pipeline", to: "/portal/pipeline", roles: ["admin", "staff"] },
+  { label: "Stats", to: "/portal/stats", roles: ["admin", "staff"] },
+
+  { label: "Settings", to: "/portal/settings" },
+];
+
+export default function Sidebar({ onNavigate, profile }) {
   const navigate = useNavigate();
 
-  const role = profile?.role || "user";
-  const isPrivileged = role === "admin" || role === "staff";
+  const role = (profile?.role || "user").toLowerCase();
+  const allowedNav = NAV_ALL.filter((n) => !n.roles || n.roles.includes(role));
 
-  const nav = [
-    { label: "Dashboard", to: "/portal", end: true },
-    { label: "Projects", to: "/portal/projects" },
-    { label: "Inbox", to: "/portal/inbox" },
-
-    // 🔐 Hidden from normal users
-    ...(isPrivileged
-      ? [
-          { label: "Leads", to: "/portal/leads" },
-          { label: "Pipeline", to: "/portal/pipeline" },
-          { label: "Stats", to: "/portal/stats" },
-        ]
-      : []),
-
-    { label: "Settings", to: "/portal/settings" },
-  ];
+  const displayName =
+    profile?.name ||
+    (profile?.email ? profile.email.split("@")[0] : "User");
 
   const handleSignOut = async () => {
     try {
@@ -42,46 +42,35 @@ export default function Sidebar({ profile, onNavigate }) {
       className="flex flex-col h-full bg-[#0A0A0A]"
       style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}
     >
-      {/* HEADER */}
       <div
         className="h-16 px-6 flex flex-col justify-center border-b"
         style={{ borderColor: "rgba(255,255,255,0.08)" }}
       >
-        <div
-          className="text-xl font-bold tracking-wide leading-none"
-          style={{ color: GREEN }}
-        >
+        <div className="text-xl font-bold tracking-wide leading-none" style={{ color: GREEN }}>
           Marsh Monster
         </div>
-
         <div className="text-xs text-slate-500 mt-1">
-          Internal Portal
+          Internal Portal • <span className="text-slate-400">{role}</span>
         </div>
       </div>
 
-      {/* NAV */}
       <nav className="flex-1 px-4 py-4 space-y-1">
-        {nav.map((n) => (
+        {allowedNav.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
             end={n.end}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `
-              block rounded-lg px-4 py-2 text-sm transition
-              ${
+              `block rounded-lg px-4 py-2 text-sm transition ${
                 isActive
                   ? "shadow-[inset_0_0_0_1px_rgba(182,242,74,0.35)]"
                   : "hover:bg-white/5"
-              }
-            `
+              }`
             }
             style={({ isActive }) => ({
               color: isActive ? GREEN : "#cbd5e1",
-              backgroundColor: isActive
-                ? "rgba(182,242,74,0.12)"
-                : "transparent",
+              backgroundColor: isActive ? "rgba(182,242,74,0.12)" : "transparent",
             })}
           >
             {n.label}
@@ -89,49 +78,34 @@ export default function Sidebar({ profile, onNavigate }) {
         ))}
       </nav>
 
-      {/* USER */}
-      <div
-        className="px-4 py-4 border-t"
-        style={{ borderColor: "rgba(255,255,255,0.08)" }}
-      >
+      <div className="px-4 py-4 border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <div className="flex items-center gap-3 mb-4">
           <div
             className="h-9 w-9 rounded-full flex items-center justify-center"
-            style={{
-              backgroundColor: "rgba(182,242,74,0.15)",
-              color: GREEN,
-            }}
+            style={{ backgroundColor: "rgba(182,242,74,0.15)", color: GREEN }}
           >
             <User size={16} />
           </div>
-
           <div className="min-w-0">
             <div className="text-sm font-semibold truncate text-slate-200">
-              {profile?.name || "Portal User"}
+              {displayName}
             </div>
-
             <div className="text-xs text-slate-500 truncate">
-              {profile?.email}
+              {profile?.email || "—"}
             </div>
           </div>
         </div>
 
         <button
           onClick={handleSignOut}
-          className="
-            w-full flex items-center justify-center gap-2
-            rounded-lg px-3 py-2 text-sm
-            text-slate-300
-            border border-white/10
-            hover:bg-white/5 transition
-          "
+          className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 border border-white/10 hover:bg-white/5 transition"
         >
           <LogOut size={16} />
           Sign out
         </button>
 
         <div className="mt-3 text-center text-xs text-slate-500">
-          Marsh Monster • v0.1.0
+          Marsh Monster • v1.5.0
         </div>
       </div>
     </div>

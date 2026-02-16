@@ -1,34 +1,40 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { listProjects } from "../lib/projectsApi";
+import { subscribeToProjects } from "../lib/projectsApi";
+
 export default function Projects({ profile }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const role = profile?.role || "admin";
+  const role = profile?.role || "user";
   const isAdmin = role === "admin" || role === "staff";
+
+  /* ================================
+        REALTIME PROJECT SUB
+  ================================ */
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const unsubscribe = subscribeToProjects(profile, (data) => {
+      setProjects(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribe?.();
+  }, [profile]);
+
+  /* ================================
+        ROLE FILTER
+  ================================ */
 
   const visibleProjects = isAdmin
     ? projects
     : projects.filter(
         (p) =>
-          (p.clientUid === profile.uid) ||
-          (p.clientEmail === profile.email)
+          p.clientUid === profile.uid ||
+          p.clientEmail === profile.email
       );
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await listProjects();
-        setProjects(data);
-      } catch (err) {
-        console.error("Failed to load projects", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
 
   if (loading) {
     return <div className="text-slate-400">Loading projects…</div>;
@@ -82,10 +88,8 @@ export default function Projects({ profile }) {
 
               {/* RIGHT */}
               <div className="flex items-center gap-4 shrink-0">
-                {/* STATUS */}
                 <StatusPill status={p.status} />
 
-                {/* ADMIN META */}
                 {isAdmin && p.source === "message" && (
                   <span className="text-xs text-emerald-400">
                     Inbox Lead

@@ -1,79 +1,51 @@
-import { db } from "../../../lib/firebase";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  updateDoc,
-  doc,
-  serverTimestamp,
-  where,
-  limit,
-} from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../lib/firebase";
 
-/**
- * Create a new invite
- */
+/*
+  INVITES API (Cloud Function based)
+  -----------------------------------
+  All invite logic goes through backend functions.
+*/
+
+/* ==============================
+   Create Invite (Admin only)
+============================== */
 export async function createInvite({ email, role }) {
-  const ref = collection(db, "invites");
-  const docRef = await addDoc(ref, {
-    email: email.toLowerCase(),
-    role,
-    status: "pending",
-    createdAt: serverTimestamp(),
-    resentAt: null,
+  if (!email) throw new Error("Email required");
+
+  const fn = httpsCallable(functions, "createInvite");
+
+  const result = await fn({
+    email: email.trim().toLowerCase(),
+    role: role || "user",
   });
 
-  return { id: docRef.id };
+  return result.data;
 }
 
-/**
- * List invites (admin)
- */
+/* ==============================
+   List Invites (Admin only)
+============================== */
 export async function listInvites() {
-  const q = query(collection(db, "invites"), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const fn = httpsCallable(functions, "listInvites");
+  const result = await fn();
+  return result.data || [];
 }
 
-/**
- * Mark invite resent (admin)
- */
-export async function markInviteResent(inviteId) {
-  const ref = doc(db, "invites", inviteId);
-  await updateDoc(ref, {
-    resentAt: serverTimestamp(),
-  });
+/* ==============================
+   Revoke Invite
+============================== */
+export async function revokeInvite(email) {
+  const fn = httpsCallable(functions, "revokeInvite");
+  const result = await fn({ email });
+  return result.data;
 }
 
-/**
- * Revoke invite (admin) - soft revoke
- */
-export async function revokeInvite(inviteId) {
-  const ref = doc(db, "invites", inviteId);
-  await updateDoc(ref, {
-    status: "revoked",
-  });
-}
-
-/**
- * Find a pending invite by email
- * Used during auth/login
- */
-export async function findPendingInviteByEmail(email) {
-  if (!email) return null;
-
-  const q = query(
-    collection(db, "invites"),
-    where("email", "==", email.toLowerCase()),
-    where("status", "==", "pending"),
-    limit(1)
-  );
-
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+/* ==============================
+   Mark Invite Resent
+============================== */
+export async function markInviteResent(email) {
+  const fn = httpsCallable(functions, "markInviteResent");
+  const result = await fn({ email });
+  return result.data;
 }

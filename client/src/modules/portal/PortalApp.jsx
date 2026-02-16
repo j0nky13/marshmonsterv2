@@ -16,7 +16,7 @@ import Layout from "./components/Layout";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Pipeline from "./pages/Pipeline";
-
+import RequireRole from "./components/RequireRole";
 
 export default function PortalApp() {
   const [authUser, setAuthUser] = useState(null);
@@ -44,19 +44,19 @@ export default function PortalApp() {
         if (snap.exists()) {
           setProfile({ uid: user.uid, ...snap.data() });
         } else {
+          // Keep your current behavior for now (we will tighten invite-only after you’re unblocked)
           const newProfile = {
             email: user.email || "",
             role: "staff",
             active: true,
             createdAt: serverTimestamp(),
           };
-
           await setDoc(ref, newProfile);
           setProfile({ uid: user.uid, ...newProfile });
         }
       } catch (err) {
         console.error("Portal boot failed", err);
-        setBootErr(err.message || "Portal boot failed");
+        setBootErr(err?.message || "Portal boot failed");
         setProfile(null);
       } finally {
         setLoading(false);
@@ -74,9 +74,7 @@ export default function PortalApp() {
     );
   }
 
-  if (!authUser) {
-    return <Login />;
-  }
+  if (!authUser) return <Login />;
 
   if (!profile) {
     return (
@@ -93,18 +91,46 @@ export default function PortalApp() {
 
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route element={<Layout profile={profile} />}>
         <Route path="/" element={<Dashboard profile={profile} />} />
         <Route path="/projects" element={<Projects profile={profile} />} />
-        <Route
-          path="/projects/:id"
-          element={<ProjectDetail profile={profile} />}
-        />
+        <Route path="/projects/:id" element={<ProjectDetail profile={profile} />} />
         <Route path="/inbox" element={<Inbox profile={profile} />} />
-        <Route path="/leads" element={<Leads />} />
-        <Route path="leads/:id" element={<LeadDetail profile={profile} />} />
-        <Route path="/pipeline" element={<Pipeline />} />
-        <Route path="/stats" element={<Stats profile={profile} />} />
+
+        {/* Staff/Admin only */}
+        <Route
+          path="/leads"
+          element={
+            <RequireRole allow={["admin", "staff"]} profile={profile}>
+              <Leads profile={profile} />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/leads/:id"
+          element={
+            <RequireRole allow={["admin", "staff"]} profile={profile}>
+              <LeadDetail profile={profile} />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/pipeline"
+          element={
+            <RequireRole allow={["admin", "staff"]} profile={profile}>
+              <Pipeline profile={profile} />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/stats"
+          element={
+            <RequireRole allow={["admin", "staff"]} profile={profile}>
+              <Stats profile={profile} />
+            </RequireRole>
+          }
+        />
+
         <Route path="/settings" element={<Settings profile={profile} />} />
       </Route>
 

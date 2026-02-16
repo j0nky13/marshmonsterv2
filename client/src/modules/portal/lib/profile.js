@@ -20,12 +20,11 @@ export async function ensureUserProfile({ uid, email, role = "staff" }) {
   const snap = await getDoc(ref);
   if (snap.exists()) return { id: snap.id, ...snap.data() };
 
-  const safeRole = role === "admin" ? "staff" : role;
-
   await setDoc(ref, {
     email: email || "",
-    role: safeRole,
+    role: role || "user",
     displayName: "",
+    active: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

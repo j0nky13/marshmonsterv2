@@ -11,6 +11,10 @@ import {
 
 import { subscribeToProject, updateProject } from "../lib/projectsApi";
 
+// ✅ Firebase Storage
+import { storage } from "../../../lib/firebase";
+import { ref, uploadBytes, listAll, getDownloadURL } from "firebase/storage";
+
 const GREEN = "#B6F24A";
 
 const PHASES = [
@@ -39,6 +43,18 @@ export default function ProjectDetail({ profile }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [saleAmount, setSaleAmount] = useState("");
+  const [saleDate, setSaleDate] = useState("");
+  useEffect(() => {
+    if (!project) return;
+
+    setSaleAmount(project.saleAmount || "");
+    setSaleDate(project.saleDate || "");
+  }, [project]);
+
+  // ✅ Files state
+  const [files, setFiles] = useState([]);
+  const [filesLoading, setFilesLoading] = useState(false);
 
   const isAdmin = (profile?.role || "") === "admin";
 
@@ -63,6 +79,39 @@ export default function ProjectDetail({ profile }) {
 
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [id]);
+
+  // ✅ Load files from Storage (projectFiles/{projectId}/...)
+  useEffect(() => {
+    if (!id) return;
+
+    let alive = true;
+    setFilesLoading(true);
+
+    const folderRef = ref(storage, `projectFiles/${id}`);
+
+    listAll(folderRef)
+      .then(async (res) => {
+        const fileData = await Promise.all(
+          res.items.map(async (itemRef) => {
+            const url = await getDownloadURL(itemRef);
+            return { name: itemRef.name, url };
+          })
+        );
+
+        if (alive) setFiles(fileData);
+      })
+      .catch((e) => {
+        console.error("Failed to load files:", e);
+        // don't hard error the whole page—just show message if needed
+      })
+      .finally(() => {
+        if (alive) setFilesLoading(false);
+      });
+
+    return () => {
+      alive = false;
     };
   }, [id]);
 
@@ -102,6 +151,57 @@ export default function ProjectDetail({ profile }) {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveSaleData() {
+    if (!id) return;
+
+    setErr("");
+    setSaving(true);
+
+    try {
+      await updateProject(id, {
+        saleAmount: saleAmount ? Number(saleAmount) : 0,
+        saleDate: saleDate || null,
+      });
+    } catch (e) {
+      console.error("Failed to update sale data:", e);
+      setErr(e?.message || "Failed to update sale data.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ✅ Upload handler
+  async function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    // allow same file re-select later
+    e.target.value = "";
+
+    try {
+      setErr("");
+
+      const fileRef = ref(storage, `projectFiles/${id}/${file.name}`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+
+      setFiles((prev) => {
+        // replace if same name already exists
+        const filtered = prev.filter((f) => f.name !== file.name);
+        return [{ name: file.name, url }, ...filtered];
+      });
+    } catch (err) {
+      console.error("Upload failed:", err);
+      setErr(err?.message || "Upload failed.");
+    }
+  }
+
+  // ✅ Download handler
+  function handleDownload(file) {
+    if (!file?.url) return;
+    window.open(file.url, "_blank", "noopener,noreferrer");
   }
 
   if (loading) {
@@ -250,9 +350,7 @@ export default function ProjectDetail({ profile }) {
                 )}
 
                 <div className="min-w-0">
-                  <div className="text-xs text-slate-400 truncate">
-                    {p.label}
-                  </div>
+                  <div className="text-xs text-slate-400 truncate">{p.label}</div>
                   <div className="text-[11px] text-slate-500 truncate">
                     {done ? "Complete" : active ? "In progress" : "Queued"}
                   </div>
@@ -275,9 +373,7 @@ export default function ProjectDetail({ profile }) {
           <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
             Client
           </div>
-          <div className="text-sm text-slate-200">
-            {project.clientName || "—"}
-          </div>
+          <div className="text-sm text-slate-200">{project.clientName || "—"}</div>
           <div className="text-xs text-slate-500 mt-1 break-all">
             {project.clientEmail || "—"}
           </div>
@@ -296,8 +392,6 @@ export default function ProjectDetail({ profile }) {
             </div>
           </div>
 
-          
-
           {project.description ? (
             <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
               {project.description}
@@ -308,43 +402,100 @@ export default function ProjectDetail({ profile }) {
         </div>
       </div>
 
-      
+      {/* SALE DATA (ADMIN ONLY) */}
+      {isAdmin && (
+        <div className="rounded-xl border border-white/10 bg-black/40 p-4">
+          <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+            Sale / Revenue Data
+          </div>
 
-      {/* FILES (PLACEHOLDER UI ONLY) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                Sale Amount ($)
+              </label>
+              <input
+                type="number"
+                value={saleAmount}
+                onChange={(e) => setSaleAmount(e.target.value)}
+                className="w-full rounded-lg bg-black/50 border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1"
+                style={{ outlineColor: GREEN }}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                Sale Date
+              </label>
+              <input
+                type="date"
+                value={saleDate || ""}
+                onChange={(e) => setSaleDate(e.target.value)}
+                className="w-full rounded-lg bg-black/50 border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1"
+                style={{ outlineColor: GREEN }}
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                onClick={saveSaleData}
+                disabled={saving}
+                className="w-full rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-4 py-2 text-sm hover:bg-emerald-500/30 transition"
+              >
+                {saving ? "Saving..." : "Save Sale Data"}
+              </button>
+            </div>
+          </div>
+
+          {project?.saleAmount > 0 && (
+            <div className="mt-4 text-sm text-emerald-300">
+              Recorded Revenue: ${Number(project.saleAmount).toLocaleString()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FILES */}
       <div className="rounded-xl border border-white/10 bg-black/40 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="text-xs uppercase tracking-wide text-slate-500">
             Files
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 transition"
-              onClick={() =>
-                setErr("File upload will be wired next (Storage + rules).")
-              }
-            >
+          {isAdmin && (
+            <label className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 transition cursor-pointer">
               <Upload size={16} />
               Upload
-            </button>
-
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 transition"
-              onClick={() =>
-                setErr("File downloads will be wired next (Storage + signed URLs).")
-              }
-            >
-              <Download size={16} />
-              Download
-            </button>
-          </div>
+              <input type="file" hidden onChange={handleUpload} />
+            </label>
+          )}
         </div>
 
-        <div className="mt-3 text-sm text-slate-500">
-          Upload/download will be added via Firebase Storage (role-aware) so
-          customers can access deliverables outside the Inbox.
+        <div className="mt-4 space-y-2">
+          {filesLoading && (
+            <div className="text-sm text-slate-500">Loading files…</div>
+          )}
+
+          {!filesLoading && files.length === 0 && (
+            <div className="text-sm text-slate-500">No files uploaded yet.</div>
+          )}
+
+          {files.map((file) => (
+            <div
+              key={file.name}
+              className="flex items-center justify-between border border-white/10 rounded-lg px-3 py-2 bg-black/60"
+            >
+              <div className="text-sm truncate">{file.name}</div>
+
+              <button
+                onClick={() => handleDownload(file)}
+                className="text-xs flex items-center gap-1 hover:opacity-70"
+                style={{ color: GREEN }}
+              >
+                <Download size={14} />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -356,4 +507,3 @@ export default function ProjectDetail({ profile }) {
     </div>
   );
 }
-

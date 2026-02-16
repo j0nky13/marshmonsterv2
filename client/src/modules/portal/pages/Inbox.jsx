@@ -5,16 +5,98 @@ import {
   markMessageRead,
   deleteMessage,
   markMessageConverted,
+  createMessage,
 } from "../../../lib/messagesApi";
 import { convertMessageToProject } from "../lib/projectsApi";
+import { listProjects } from "../lib/projectsApi";
 
 export default function Inbox({ profile }) {
   const [messages, setMessages] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [active, setActive] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [showConvert, setShowConvert] = useState(false);
   const [converting, setConverting] = useState(false);
+
+  const [showNewMessage, setShowNewMessage] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [newMessage, setNewMessage] = useState({
+    projectId: "",
+    message: "",
+  });
+  async function sendNewMessage() {
+    if (!newMessage.message.trim()) return;
+
+    try {
+      setSending(true);
+
+      let clientEmail = profile.email;
+      let clientUid = profile.uid;
+
+      // If admin, derive client from selected project
+      if (profile.role === "admin") {
+        const selectedProject = projects.find(
+          (p) => p.id === newMessage.projectId
+        );
+
+        if (!selectedProject) {
+          alert("Please select a project.");
+          setSending(false);
+          return;
+        }
+
+        clientEmail = selectedProject.clientEmail;
+        clientUid = selectedProject.clientUid || null;
+
+        if (!clientEmail) {
+          alert("Selected project has no client email.");
+          setSending(false);
+          return;
+        }
+      }
+
+      // Stable thread ID per project or per user (prevents new thread every send)
+      const threadId = newMessage.projectId
+        ? `project-${newMessage.projectId}`
+        : `user-${clientUid || clientEmail}`;
+
+      const payload = {
+        email: clientEmail,
+        name: profile.name || "Portal User",
+        message: newMessage.message,
+
+        // Ownership
+        clientUid: clientUid || null,
+
+        // Sender tracking (fixes thread visibility both directions)
+        senderUid: profile.uid,
+        senderRole: profile.role,
+
+        projectId: newMessage.projectId || null,
+        status: "new",
+        source: "portal",
+        page: "inbox",
+        threadId,
+        read: false,
+      };
+
+      await createMessage(payload);
+
+      setShowNewMessage(false);
+      setNewMessage({
+        projectId: "",
+        message: "",
+      });
+
+      await load();
+    } catch (err) {
+      console.error("SEND FAILED:", err);
+      alert("Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const [form, setForm] = useState({
     title: "",
@@ -28,21 +110,53 @@ export default function Inbox({ profile }) {
   });
 
   useEffect(() => {
+    if (!profile?.uid) return;
     load();
-  }, []);
+  }, [profile?.uid]);
 
   async function load() {
-    setLoading(true);
-    let allMessages = await listMessages();
-    if (profile.role === "user") {
-      allMessages = allMessages.filter(
-        (m) =>
-          m.clientUid === profile.uid ||
-          m.email === profile.email
-      );
+    try {
+      setLoading(true);
+
+      let allMessages = await listMessages(profile);
+      let allProjects = await listProjects(profile);
+
+      if (profile.role === "user") {
+        const normalizedEmail = (profile.email || "").toLowerCase().trim();
+
+        allMessages = Array.isArray(allMessages)
+          ? allMessages.filter((m) => {
+              const messageEmail = (m.email || "").toLowerCase().trim();
+
+              return (
+                m.clientUid === profile.uid ||
+                messageEmail === normalizedEmail ||
+                m.senderUid === profile.uid
+              );
+            })
+          : [];
+
+        allProjects = Array.isArray(allProjects)
+          ? allProjects.filter((p) => {
+              const projectEmail = (p.clientEmail || "").toLowerCase().trim();
+
+              return (
+                p.clientUid === profile.uid ||
+                projectEmail === normalizedEmail
+              );
+            })
+          : [];
+      }
+
+      setMessages(Array.isArray(allMessages) ? allMessages : []);
+      setProjects(Array.isArray(allProjects) ? allProjects : []);
+    } catch (err) {
+      console.error("Inbox load failed:", err);
+      setMessages([]);
+      setProjects([]);
+    } finally {
+      setLoading(false);
     }
-    setMessages(allMessages);
-    setLoading(false);
   }
 
   const threads = useMemo(() => {
@@ -57,15 +171,28 @@ export default function Inbox({ profile }) {
     // Sort messages in each thread by createdAt ascending
     const sortedThreads = [];
     for (const [threadId, msgs] of map.entries()) {
-      msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      msgs.sort((a, b) => {
+        const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+        const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+        return aDate - bDate;
+      });
       sortedThreads.push({ threadId, messages: msgs });
     }
     // Sort threads by latest message createdAt descending
-    sortedThreads.sort(
-      (a, b) =>
-        new Date(b.messages[b.messages.length - 1].createdAt) -
-        new Date(a.messages[a.messages.length - 1].createdAt)
-    );
+    sortedThreads.sort((a, b) => {
+      const aLast = a.messages[a.messages.length - 1];
+      const bLast = b.messages[b.messages.length - 1];
+
+      const aDate = aLast?.createdAt?.toDate
+        ? aLast.createdAt.toDate()
+        : new Date(aLast?.createdAt || 0);
+
+      const bDate = bLast?.createdAt?.toDate
+        ? bLast.createdAt.toDate()
+        : new Date(bLast?.createdAt || 0);
+
+      return bDate - aDate;
+    });
     return sortedThreads;
   }, [messages]);
 
@@ -188,6 +315,14 @@ export default function Inbox({ profile }) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
       {/* THREAD LIST */}
       <div className="border border-slate-800 rounded-lg overflow-hidden">
+        <div className="p-3 border-b border-slate-800">
+          <button
+            onClick={() => setShowNewMessage(true)}
+            className="w-full px-3 py-2 text-xs font-semibold rounded bg-[#B6F24A] text-black hover:brightness-95"
+          >
+            + New Message
+          </button>
+        </div>
         {threads.map((thread) => {
           const lastMessage = thread.messages[thread.messages.length - 1];
           const anyUnread = thread.messages.some((m) => !m.read);
@@ -246,10 +381,10 @@ export default function Inbox({ profile }) {
                   disabled={!clientMessageId || alreadyConverted}
                   className={`px-3 py-1 text-xs rounded border transition ${
                     !clientMessageId
-                      ? "border-slate-700 text-slate-500 cursor-not-allowed"
-                      : alreadyConverted
-                      ? "border-slate-700 text-slate-500 cursor-not-allowed"
-                      : "border-emerald-600 text-emerald-400 hover:bg-emerald-900/20"
+                  ? "border-slate-700 text-slate-500 cursor-not-allowed"
+                  : alreadyConverted
+                  ? "border-slate-700 text-slate-500 cursor-not-allowed"
+                  : "border-[#B6F24A] text-[#B6F24A] hover:bg-[#B6F24A]/10"
                   }`}
                 >
                   {!clientMessageId
@@ -278,13 +413,13 @@ export default function Inbox({ profile }) {
                 <textarea
                   rows={3}
                   disabled
-                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none resize-none"
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none resize-none"
                   placeholder="Reply feature coming soon"
                 />
                 <button
                   disabled
                   // TODO: wire sendMessage()
-                  className="mt-2 px-4 py-2 text-xs font-semibold rounded bg-emerald-500 text-black opacity-60 cursor-not-allowed"
+                  className="mt-2 px-4 py-2 text-xs font-semibold rounded bg-[#B6F24A] text-black opacity-60 cursor-not-allowed"
                 >
                   Send
                 </button>
@@ -300,7 +435,7 @@ export default function Inbox({ profile }) {
           <div className="bg-[#0f141b] border border-white/10 rounded-xl w-full max-w-2xl shadow-2xl">
             {/* Header */}
             <div className="px-6 py-4 border-b border-white/10">
-              <h3 className="text-lg font-semibold text-emerald-400">
+              <h3 className="text-lg font-semibold text-[#B6F24A]">
                 Convert Message → Project
               </h3>
               <p className="text-xs text-slate-400 mt-1">
@@ -316,7 +451,7 @@ export default function Inbox({ profile }) {
                 </label>
                 <input
                   value={form.title}
-                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none"
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none"
                   placeholder="Client Website Redesign"
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
@@ -328,7 +463,7 @@ export default function Inbox({ profile }) {
                 </label>
                 <input
                   value={form.goal}
-                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none"
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none"
                   placeholder="Generate leads / Improve performance"
                   onChange={(e) => setForm({ ...form, goal: e.target.value })}
                 />
@@ -343,7 +478,7 @@ export default function Inbox({ profile }) {
                     type="number"
                     min="1"
                     value={form.pages}
-                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none"
+                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none"
                     onChange={(e) => setForm({ ...form, pages: e.target.value })}
                   />
                 </div>
@@ -354,7 +489,7 @@ export default function Inbox({ profile }) {
                   </label>
                   <input
                     value={form.domain}
-                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none"
+                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none"
                     placeholder="example.com"
                     onChange={(e) =>
                       setForm({ ...form, domain: e.target.value })
@@ -373,7 +508,7 @@ export default function Inbox({ profile }) {
                     min="0"
                     step="100"
                     value={form.budget}
-                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none"
+                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none"
                     placeholder="8000"
                     onChange={(e) =>
                       setForm({ ...form, budget: e.target.value })
@@ -413,7 +548,7 @@ export default function Inbox({ profile }) {
                     setForm((f) => ({ ...f, graphics: !f.graphics }))
                   }
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                    form.graphics ? "bg-emerald-500" : "bg-slate-700"
+                    form.graphics ? "bg-[#B6F24A]" : "bg-slate-700"
                   }`}
                 >
                   <span
@@ -431,7 +566,7 @@ export default function Inbox({ profile }) {
                 <textarea
                   rows={5}
                   value={form.notes}
-                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 outline-none resize-none"
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-[#B6F24A] focus:ring-2 focus:ring-[#B6F24A]/20 outline-none resize-none"
                   placeholder="Add anything: features needed, inspiration links, deliverables, hosting, integrations, etc…"
                   onChange={(e) =>
                     setForm({ ...form, notes: e.target.value })
@@ -452,9 +587,86 @@ export default function Inbox({ profile }) {
               <button
                 disabled={converting}
                 onClick={convertToProject}
-                className="px-5 py-2 text-xs font-semibold rounded bg-emerald-500 text-black hover:bg-emerald-400 disabled:opacity-60"
+                className="px-5 py-2 text-xs font-semibold rounded bg-[#B6F24A] text-black hover:brightness-95 disabled:opacity-60"
               >
                 {converting ? "Creating…" : "Create Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* NEW MESSAGE MODAL */}
+      {showNewMessage && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#0f141b] border border-white/10 rounded-xl w-full max-w-xl shadow-2xl">
+            <div className="px-6 py-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-[#B6F24A]">
+                New Message
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Start a new conversation thread with the selected project's client.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4 text-sm">
+              {/* Project select */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">
+                  Project
+                </label>
+                <select
+                  required={profile.role === "admin"}
+                  value={newMessage.projectId}
+                  onChange={(e) =>
+                    setNewMessage((m) => ({
+                      ...m,
+                      projectId: e.target.value,
+                    }))
+                  }
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 outline-none"
+                >
+                  <option value="">General Message</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} — {p.clientName || p.clientEmail || "Unassigned"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">
+                  Message
+                </label>
+                <textarea
+                  rows={5}
+                  value={newMessage.message}
+                  onChange={(e) =>
+                    setNewMessage((m) => ({
+                      ...m,
+                      message: e.target.value,
+                    }))
+                  }
+                  className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 focus:border-emerald-400 outline-none resize-none"
+                  placeholder="Type your message…"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-white/10 flex justify-end gap-3">
+              <button
+                onClick={() => setShowNewMessage(false)}
+                className="px-4 py-2 text-xs rounded border border-white/10 text-slate-300 hover:bg-white/5"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={sending}
+                onClick={sendNewMessage}
+                className="px-5 py-2 text-xs font-semibold rounded bg-[#B6F24A] text-black hover:brightness-95 disabled:opacity-60"
+              >
+                {sending ? "Sending…" : "Send Message"}
               </button>
             </div>
           </div>

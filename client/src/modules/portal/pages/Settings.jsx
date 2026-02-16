@@ -5,6 +5,11 @@ import { createInvite, listInvites, revokeInvite, markInviteResent } from "../li
 import { listUsers, updateUserRole, setUserActive, updateMyPreferences } from "../lib/usersApi";
 import { listAuditEvents, logAudit } from "../lib/auditApi";
 
+
+
+
+
+
 const GREEN = "#B6F24A";
 
 const ROLE_OPTIONS = ["staff", "user", "admin"];
@@ -19,7 +24,7 @@ export default function Settings({ profile }) {
 
   // ---------- Invite form ----------
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("staff");
+  const [inviteRole, setInviteRole] = useState("user");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState("");
   const [err, setErr] = useState("");
@@ -143,7 +148,7 @@ export default function Settings({ profile }) {
 
       setSent(`Invite sent to ${email}`);
       setInviteEmail("");
-      setInviteRole("staff");
+      setInviteRole("user");
 
       // refresh invites list
       const inv = await listInvites();
@@ -775,7 +780,11 @@ function Toggle({ label, desc, value, onChange }) {
         </div>
       </div>
     </button>
+    
   );
+
+  
+  
 }
 
 function InfoBox({ label, value, accent }) {

@@ -1,116 +1,44 @@
-import { db } from "../../../lib/firebase";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  updateDoc,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../lib/firebase";
 
 /* ======================================================
-   USERS
+   USERS (Cloud Function Only)
    ====================================================== */
 
 /**
  * List all users (admin only)
  */
 export async function listUsers() {
-  const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const fn = httpsCallable(functions, "listUsers");
+  const result = await fn();
+  return result.data || [];
 }
 
 /**
- * Update logged-in user's preferences (safe)
- * - Writes ONLY: displayName + preferences.* + updatedAt
- * - Never writes: email, role
- * - Merges preferences to avoid clobber
- * - Never reads the user doc (write-only)
- * - Returns an optimistic merged object
+ * Update logged-in user's preferences
+ * (handled fully server-side)
  */
 export async function updateMyPreferences(uid, prefs = {}) {
   if (!uid) throw new Error("updateMyPreferences: missing uid");
 
-  const ref = doc(db, "users", uid);
+  const fn = httpsCallable(functions, "updateMyPreferences");
 
-  // Build preferences payload optimistically (merge with supplied fields only)
-  const nextPrefs = {};
-  if (prefs.timezone !== undefined) nextPrefs.timezone = prefs.timezone;
-  if (prefs.dateFormat !== undefined) nextPrefs.dateFormat = prefs.dateFormat;
-  if (prefs.notifications !== undefined) {
-    nextPrefs.notifications = { ...prefs.notifications };
-  }
-
-  const payload = {
-    updatedAt: serverTimestamp(),
-  };
-  if (prefs.displayName !== undefined) {
-    payload.displayName = prefs.displayName;
-  }
-  if (Object.keys(nextPrefs).length > 0) {
-    payload.preferences = nextPrefs;
-  }
-
-  await updateDoc(ref, payload);
-
-  // Return an optimistic merged object (not reading from Firestore)
-  return {
+  const result = await fn({
     uid,
-    ...(prefs.displayName !== undefined ? { displayName: prefs.displayName } : {}),
-    preferences: {
-      ...(nextPrefs || {}),
-    },
-  };
-}
-
-/**
- * Update user role (admin only)
- */
-export async function updateUserRole(userId, role) {
-  const ref = doc(db, "users", userId);
-  await updateDoc(ref, { role, updatedAt: serverTimestamp() });
-}
-
-/**
- * Enable / disable user (admin only)
- */
-export async function setUserActive(userId, active) {
-  const ref = doc(db, "users", userId);
-  await updateDoc(ref, { active, updatedAt: serverTimestamp() });
-}
-
-/* ======================================================
-   INVITES
-   ====================================================== */
-
-export async function createInvite({ email, role }) {
-  const ref = collection(db, "invites");
-  const docRef = await addDoc(ref, {
-    email: (email || "").trim().toLowerCase(),
-    role,
-    status: "pending",
-    createdAt: serverTimestamp(),
-    resentAt: null,
+    prefs,
   });
 
-  return { id: docRef.id };
+  return result.data;
 }
 
-export async function listInvites() {
-  const q = query(collection(db, "invites"), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+export async function updateUserRole(userId, role) {
+  const fn = httpsCallable(functions, "updateUserRole");
+  const result = await fn({ uid: userId, role });
+  return result.data;
 }
 
-export async function markInviteResent(inviteId) {
-  const ref = doc(db, "invites", inviteId);
-  await updateDoc(ref, { resentAt: serverTimestamp() });
-}
-
-export async function revokeInvite(inviteId) {
-  const ref = doc(db, "invites", inviteId);
-  await updateDoc(ref, { status: "revoked" });
+export async function setUserActive(userId, active) {
+  const fn = httpsCallable(functions, "setUserActive");
+  const result = await fn({ uid: userId, active });
+  return result.data;
 }

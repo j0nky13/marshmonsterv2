@@ -7,7 +7,7 @@ import { groupByDay } from "../lib/stats.chart.utils";
 
 const TABS = ["overview", "revenue", "forecast", "leads", "export"];
 
-export default function Stats() {
+export default function Stats({ profile }) {
   const [projects, setProjects] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +16,7 @@ export default function Stats() {
   useEffect(() => {
     async function load() {
       try {
-        const [p, m] = await Promise.all([listProjects(), listMessages()]);
+        const [p, m] = await Promise.all([listProjects(profile), listMessages(profile)]);
         setProjects(Array.isArray(p) ? p : []);
         setMessages(Array.isArray(m) ? m : []);
       } catch (err) {
@@ -26,7 +26,7 @@ export default function Stats() {
       }
     }
     load();
-  }, []);
+  }, [profile?.uid]);
 
   /* ---------------- helpers ---------------- */
 
@@ -101,17 +101,17 @@ export default function Stats() {
   );
 
   const totalRevenue = useMemo(
-    () => projects.reduce((sum, p) => sum + n(p.budget), 0),
+    () => projects.reduce((sum, p) => sum + n(p.saleAmount), 0),
     [projects]
   );
 
   const activeRevenue = useMemo(
-    () => activeProjects.reduce((sum, p) => sum + n(p.budget), 0),
+    () => activeProjects.reduce((sum, p) => sum + n(p.saleAmount), 0),
     [activeProjects]
   );
 
   const completedRevenue = useMemo(
-    () => completedProjects.reduce((sum, p) => sum + n(p.budget), 0),
+    () => completedProjects.reduce((sum, p) => sum + n(p.saleAmount), 0),
     [completedProjects]
   );
 
@@ -127,7 +127,7 @@ export default function Stats() {
 
   // Charts (keep StatsChart usage minimal to avoid breaking existing props)
   const revenueSeries = useMemo(
-    () => groupByDay(projects, (p) => n(p.budget)),
+    () => groupByDay(projects, (p) => n(p.saleAmount)),
     [projects]
   );
 
@@ -146,7 +146,7 @@ export default function Stats() {
   ----------------------------------------------------- */
 
   const forecast = useMemo(() => {
-    const budgets = projects.map((p) => n(p.budget)).filter((x) => x > 0);
+    const budgets = projects.map((p) => n(p.saleAmount)).filter((x) => x > 0);
 
     const avg = budgets.length ? budgets.reduce((a, b) => a + b, 0) / budgets.length : 0;
 
@@ -211,7 +211,7 @@ export default function Stats() {
     const byStage = {};
     for (const p of projects) {
       const stage = stageFromStatus(p.status);
-      const budget = n(p.budget);
+      const budget = n(p.saleAmount);
       byStage[stage] = byStage[stage] || { stage, count: 0, revenue: 0, weighted: 0 };
       byStage[stage].count += 1;
       byStage[stage].revenue += budget;
@@ -233,7 +233,7 @@ export default function Stats() {
     for (const p of projects) {
       const email = (p.clientEmail || "").trim().toLowerCase() || "(no email)";
       const name = p.clientName || "Unknown";
-      const budget = n(p.budget);
+      const budget = n(p.saleAmount);
       const stage = stageFromStatus(p.status);
 
       if (!map.has(email)) {
@@ -598,14 +598,14 @@ export default function Stats() {
               desc="Projects list including budget, status, client, and timestamps."
               onClick={() => {
                 const rows = [
-                  ["id", "title", "clientName", "clientEmail", "status", "budget", "pages", "goal", "domain", "graphics", "createdAt", "updatedAt", "source", "sourceMessageId"],
+                  ["id", "title", "clientName", "clientEmail", "status", "saleAmount", "pages", "goal", "domain", "graphics", "createdAt", "updatedAt", "source", "sourceMessageId"],
                   ...projects.map((p) => [
                     p.id,
                     p.title || "",
                     p.clientName || "",
                     p.clientEmail || "",
                     p.status || "",
-                    p.budget ?? "",
+                    p.saleAmount ?? "",
                     p.pages ?? "",
                     p.goal || "",
                     p.domain || "",

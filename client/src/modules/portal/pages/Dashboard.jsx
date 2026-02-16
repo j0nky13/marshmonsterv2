@@ -16,7 +16,7 @@ export default function Dashboard({ profile }) {
   const isAdminLike = role === "admin" || role === "staff";
 
   return isAdminLike ? (
-    <AdminDashboard />
+    <AdminDashboard profile={profile} />
   ) : (
     <CustomerDashboard profile={profile} />
   );
@@ -26,7 +26,7 @@ export default function Dashboard({ profile }) {
 /*                                  ADMIN UI                                  */
 /* -------------------------------------------------------------------------- */
 
-function AdminDashboard() {
+function AdminDashboard({ profile }) {
   const [projects, setProjects] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +38,12 @@ function AdminDashboard() {
     async function fetchData() {
       try {
         const [projectsData, messagesData] = await Promise.all([
-          listProjects(),
-          listMessages(),
+          listProjects(profile),
+          listMessages(profile),
         ]);
+
         if (!alive) return;
+
         setProjects(Array.isArray(projectsData) ? projectsData : []);
         setMessages(Array.isArray(messagesData) ? messagesData : []);
       } catch (err) {
@@ -52,10 +54,11 @@ function AdminDashboard() {
     }
 
     fetchData();
+
     return () => {
       alive = false;
     };
-  }, []);
+  }, [profile?.uid]);
 
   const activeProjects = useMemo(
     () => projects.filter((p) => p?.status === "active"),
@@ -73,7 +76,6 @@ function AdminDashboard() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
-      {/* HEADER */}
       <header className="mb-8 md:mb-12">
         <h1 className="text-2xl md:text-3xl font-semibold text-white">
           Admin Overview
@@ -83,7 +85,6 @@ function AdminDashboard() {
         </p>
       </header>
 
-      {/* STATUS STRIP */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-10 md:mb-14">
         <StatusBlock label="Active Projects" value={activeProjects.length} />
         <StatusBlock label="Total Projects" value={projects.length} />
@@ -94,9 +95,7 @@ function AdminDashboard() {
         />
       </section>
 
-      {/* CONTENT GRID */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-        {/* PROJECTS */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-white">Active Projects</h2>
@@ -140,7 +139,6 @@ function AdminDashboard() {
           )}
         </div>
 
-        {/* MESSAGES */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-white">Recent Messages</h2>
@@ -192,9 +190,9 @@ function AdminDashboard() {
 function StatusBlock({ label, value, highlight }) {
   return (
     <div
-      className={`rounded-2xl px-6 py-5 border
-        ${highlight ? "bg-emerald-500/10" : "bg-white/5"}
-      `}
+      className={`rounded-2xl px-6 py-5 border ${
+        highlight ? "bg-emerald-500/10" : "bg-white/5"
+      }`}
       style={{
         borderColor: highlight
           ? "rgba(16,185,129,0.35)"
@@ -224,27 +222,26 @@ function CustomerDashboard({ profile }) {
 
     async function fetchData() {
       try {
-        // Fetch all, then filter by clientUid or email (relaxed filter, legacy support)
         const [projectsData, messagesData] = await Promise.all([
-          listProjects(),
-          listMessages(),
+          listProjects(profile),
+          listMessages(profile),
         ]);
 
         if (!alive) return;
-        // Defensive filter: show if clientUid matches OR email matches
+
         const safeProjects = Array.isArray(projectsData)
           ? projectsData.filter(
               (p) =>
-                (p.clientUid === profile.uid) ||
-                (p.clientEmail === profile.email)
+                p.clientUid === profile.uid ||
+                p.clientEmail === profile.email
             )
           : [];
 
         const safeMessages = Array.isArray(messagesData)
           ? messagesData.filter(
               (m) =>
-                (m.clientUid === profile.uid) ||
-                (m.email === profile.email)
+                m.clientUid === profile.uid ||
+                m.email === profile.email
             )
           : [];
 
@@ -258,6 +255,7 @@ function CustomerDashboard({ profile }) {
     }
 
     fetchData();
+
     return () => {
       alive = false;
     };
@@ -288,27 +286,16 @@ function CustomerDashboard({ profile }) {
         </p>
       </header>
 
-      {/* TOP STRIP */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div
-          className="rounded-2xl border bg-white/5 px-5 py-4"
-          style={{ borderColor: "rgba(255,255,255,0.10)" }}
-        >
-          <div className="text-xs uppercase tracking-wide text-slate-400">
-            Status
-          </div>
+        <div className="rounded-2xl border bg-white/5 px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+          <div className="text-xs uppercase tracking-wide text-slate-400">Status</div>
           <div className="mt-2 text-lg font-semibold text-white">
             {activeProject?.status || "—"}
           </div>
         </div>
 
-        <div
-          className="rounded-2xl border bg-white/5 px-5 py-4"
-          style={{ borderColor: "rgba(255,255,255,0.10)" }}
-        >
-          <div className="text-xs uppercase tracking-wide text-slate-400">
-            Project
-          </div>
+        <div className="rounded-2xl border bg-white/5 px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+          <div className="text-xs uppercase tracking-wide text-slate-400">Project</div>
           <div className="mt-2 text-lg font-semibold text-white truncate">
             {activeProject?.title || "No project assigned"}
           </div>
@@ -334,19 +321,11 @@ function CustomerDashboard({ profile }) {
         </div>
       </section>
 
-      {/* MAIN */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div
-          className="rounded-2xl border bg-black/30 p-5"
-          style={{ borderColor: "rgba(255,255,255,0.10)" }}
-        >
+        <div className="rounded-2xl border bg-black/30 p-5" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-white">Latest Update</h2>
-            <button
-              onClick={() => nav("/portal/projects")}
-              className="text-sm hover:underline"
-              style={{ color: GREEN }}
-            >
+            <button onClick={() => nav("/portal/projects")} className="text-sm hover:underline" style={{ color: GREEN }}>
               View project
             </button>
           </div>
@@ -360,7 +339,9 @@ function CustomerDashboard({ profile }) {
                 <span className="text-slate-400">Next step:</span> {activeProject.nextStep || "We’ll message you with next steps."}
               </div>
               {activeProject.updatedAt && (
-                <div className="text-xs text-slate-500">Last updated: {String(activeProject.updatedAt)}</div>
+                <div className="text-xs text-slate-500">
+                  Last updated: {String(activeProject.updatedAt)}
+                </div>
               )}
             </div>
           ) : (
@@ -368,17 +349,10 @@ function CustomerDashboard({ profile }) {
           )}
         </div>
 
-        <div
-          className="rounded-2xl border bg-black/30 p-5"
-          style={{ borderColor: "rgba(255,255,255,0.10)" }}
-        >
+        <div className="rounded-2xl border bg-black/30 p-5" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-white">Messages</h2>
-            <button
-              onClick={() => nav("/portal/inbox")}
-              className="text-sm hover:underline"
-              style={{ color: GREEN }}
-            >
+            <button onClick={() => nav("/portal/inbox")} className="text-sm hover:underline" style={{ color: GREEN }}>
               Open inbox
             </button>
           </div>

@@ -10,50 +10,124 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  orderBy,
 } from "firebase/firestore";
 
 /*
-  NOTE:
-  - This file MUST stay pure JS (no JSX, no React).
-  - All functions here are Firestore helpers used by portal pages.
+  PURE FIRESTORE HELPER FILE
+  Role-aware.
 */
 
-/* ---------------- LIST (ADMIN) ---------------- */
-export async function listProjects() {
-  const projectsCol = collection(db, "projects");
-  const snap = await getDocs(projectsCol);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
+/* =====================================================
+   LIST PROJECTS (ROLE-AWARE)
+===================================================== */
 
-/* ---------------- LIST BY CLIENT UID (CUSTOMER) ---------------- */
-export async function listProjectsByClient(clientUid) {
-  if (!clientUid) return [];
-  const projectsCol = collection(db, "projects");
-  const q = query(projectsCol, where("clientUid", "==", clientUid));
+export async function listProjects(profile) {
+  if (!profile?.uid) return [];
+
+  const role = profile.role;
+  const isStaff = role === "admin" || role === "staff";
+
+  let q;
+
+  if (isStaff) {
+    q = query(
+      collection(db, "projects"),
+      orderBy("createdAt", "desc")
+    );
+  } else {
+    q = query(
+      collection(db, "projects"),
+      where("clientUid", "==", profile.uid),
+      orderBy("createdAt", "desc")
+    );
+  }
+
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  return snap.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  }));
 }
 
-/* ---------------- GET ---------------- */
+/* =====================================================
+   GET PROJECT
+===================================================== */
+
 export async function getProject(id) {
   if (!id) return null;
+
   const ref = doc(db, "projects", id);
   const snap = await getDoc(ref);
+
   if (!snap.exists()) return null;
+
   return { id: snap.id, ...snap.data() };
 }
 
-/* ---------------- UPDATE ---------------- */
+/* =====================================================
+   UPDATE PROJECT
+===================================================== */
+
 export async function updateProject(id, updates) {
   if (!id) throw new Error("updateProject: missing id");
-  if (!updates || typeof updates !== "object") {
-    throw new Error("updateProject: updates must be an object");
-  }
+
   const ref = doc(db, "projects", id);
-  await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
+
+  await updateDoc(ref, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
 }
 
-/* ---------------- SUBSCRIBE TO SINGLE PROJECT ---------------- */
+/* =====================================================
+   SUBSCRIBE TO PROJECTS (REALTIME LIST)
+===================================================== */
+
+export function subscribeToProjects(profile, callback) {
+  if (!profile?.uid) {
+    callback([]);
+    return () => {};
+  }
+
+  const role = profile.role;
+  const isStaff = role === "admin" || role === "staff";
+
+  let q;
+
+  if (isStaff) {
+    q = query(
+      collection(db, "projects"),
+      orderBy("createdAt", "desc")
+    );
+  } else {
+    q = query(
+      collection(db, "projects"),
+      where("clientUid", "==", profile.uid)
+    );
+  }
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const projects = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+      callback(projects);
+    },
+    (err) => {
+      console.error("subscribeToProjects error:", err);
+      callback([]);
+    }
+  );
+}
+
+/* =====================================================
+   SUBSCRIBE TO SINGLE PROJECT
+===================================================== */
+
 export function subscribeToProject(id, callback) {
   if (!id) {
     callback(null);
@@ -61,75 +135,47 @@ export function subscribeToProject(id, callback) {
   }
 
   const ref = doc(db, "projects", id);
-  const unsubscribe = onSnapshot(
+
+  return onSnapshot(
     ref,
     (snap) => {
-      if (snap.exists()) callback({ id: snap.id, ...snap.data() });
-      else callback(null);
+      if (snap.exists()) {
+        callback({ id: snap.id, ...snap.data() });
+      } else {
+        callback(null);
+      }
     },
     (err) => {
       console.error("subscribeToProject error:", err);
       callback(null);
     }
   );
-
-  return unsubscribe;
 }
 
-/* ---------------- COMPAT: OLD CALL SITES ----------------
-   Some older pages referenced profile.uid / profileUid.
-   Keep this export so those pages don't crash, but prefer clientUid.
----------------------------------------------------------- */
-export async function listProjectsForProfile(profile) {
-  const uid = profile?.uid;
-  if (!uid) return [];
+/* =====================================================
+   CONVERT MESSAGE → PROJECT
+===================================================== */
 
-  const projectsCol = collection(db, "projects");
-  // First try modern field
-  const q1 = query(projectsCol, where("clientUid", "==", uid));
-  const snap1 = await getDocs(q1);
-  if (!snap1.empty) return snap1.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-  // Fallback for legacy field name
-  const q2 = query(projectsCol, where("profileUid", "==", uid));
-  const snap2 = await getDocs(q2);
-  return snap2.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-/* ---------------- CONVERT MESSAGE -> PROJECT ----------------
-   This is used by Inbox to "Convert to project".
-   - Creates a project document.
-   - Marks the message as converted.
-
-   Assumes your contact form writes to collection: "messages".
----------------------------------------------------------- */
 export async function convertMessageToProject(messageId, projectInput = {}) {
-  if (!messageId) throw new Error("convertMessageToProject: missing messageId");
+  if (!messageId) {
+    throw new Error("convertMessageToProject: missing messageId");
+  }
 
-  // Create project
-  const projectsCol = collection(db, "projects");
-  const created = await addDoc(projectsCol, {
+  const created = await addDoc(collection(db, "projects"), {
     title: projectInput.title || projectInput.clientName || "New Project",
     description: projectInput.description || "",
-
-    // Client identity (prefer these fields if provided)
     clientUid: projectInput.clientUid || null,
-    clientName: projectInput.clientName || projectInput.name || "",
-    clientEmail: projectInput.clientEmail || projectInput.email || "",
-
-    status: projectInput.status || "active",
-    phase: projectInput.phase || "discovery",
-
-    // Link back to the original lead/message
+    clientName: projectInput.clientName || "",
+    clientEmail: projectInput.clientEmail || "",
+    status: "active",
+    phase: "discovery",
+    source: "message",
     sourceMessageId: messageId,
-
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  // Mark message converted
-  const msgRef = doc(db, "messages", messageId);
-  await updateDoc(msgRef, {
+  await updateDoc(doc(db, "messages", messageId), {
     status: "converted",
     convertedAt: serverTimestamp(),
     projectId: created.id,
@@ -138,34 +184,29 @@ export async function convertMessageToProject(messageId, projectInput = {}) {
   return { projectId: created.id };
 }
 
+/* =====================================================
+   CONVERT LEAD → PROJECT (THIS WAS MISSING)
+===================================================== */
+
 export async function convertLeadToProject(lead) {
   if (!lead) throw new Error("Missing lead");
 
-  const projectsCol = collection(db, "projects");
-
-  const created = await addDoc(projectsCol, {
+  const created = await addDoc(collection(db, "projects"), {
     title: lead.company || lead.name || "New Project",
     description: lead.notes || "",
-
-    clientName: lead.name,
-    clientEmail: lead.email,
+    clientName: lead.name || "",
+    clientEmail: lead.email || "",
     clientPhone: lead.phone || "",
-
-    clientUid: null, // filled later if they become a portal user
-
+    clientUid: null,
     status: "active",
     phase: "discovery",
-
+    source: "lead",
     sourceLeadId: lead.id,
-
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  // mark lead converted
-  const leadRef = doc(db, "leads", lead.id);
-
-  await updateDoc(leadRef, {
+  await updateDoc(doc(db, "leads", lead.id), {
     status: "converted",
     convertedToProjectId: created.id,
     updatedAt: serverTimestamp(),
