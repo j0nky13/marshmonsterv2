@@ -1,7 +1,9 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import "dotenv/config";
+
 import { connectDB } from "./config/db.js";
+
 import statsRoutes from "./routes/stats.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import leadRoutes from "./routes/leads.routes.js";
@@ -13,13 +15,24 @@ import filesRoutes from "./routes/files.routes.js";
 import messagesRoutes from "./routes/messages.routes.js";
 import invoicesRoutes from "./routes/invoices.routes.js";
 
-// dotenv.config();
-
 const app = express();
+
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "https://marsh.monster",
+  "https://www.marsh.monster",
+  "http://localhost:5173"
+].filter(Boolean);
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true
   })
 );
@@ -40,17 +53,16 @@ app.use("/api/leadbot", leadbotRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/commissions", commissionsRoutes);
 app.use("/api/projects", projectsRoutes);
+app.use("/api/files", filesRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/invoices", invoicesRoutes);
 
-app.use("/api/files", filesRoutes);
 app.use("/uploads", express.static("uploads"));
-app.use("/api/messages", messagesRoutes);
 
 const PORT = process.env.PORT || 5050;
 
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(` Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 });

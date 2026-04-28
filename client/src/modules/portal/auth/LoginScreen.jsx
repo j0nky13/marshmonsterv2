@@ -86,7 +86,7 @@ export default function LoginScreen({ onLogin }) {
 
         {sent ? (
           <div className="rounded-2xl bg-lime-400/10 border border-lime-400/30 p-4 text-lime-300">
-            Login link sent. Check your email and click the link to continue.
+            Login link sent. Check your email and click the link to continue. (also check your junk folder!)
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -114,7 +114,7 @@ export default function LoginScreen({ onLogin }) {
               type="submit"
               className="w-full bg-lime-400 text-black font-bold rounded-xl py-3 hover:bg-lime-300 transition"
             >
-              Send Secure Login Link
+              Send Login Link
             </button>
           </form>
         )}
