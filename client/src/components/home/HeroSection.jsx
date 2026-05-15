@@ -211,7 +211,7 @@ export default function HeroSection() {
             </span>
 
             <span className="inline-flex overflow-hidden">
-              {"cool stuff".split("").map((c, i) => (
+              {"cool shit".split("").map((c, i) => (
                 <span
                   key={i}
                   className="inline-block transition-all duration-500"
