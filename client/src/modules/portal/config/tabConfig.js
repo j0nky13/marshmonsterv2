@@ -8,7 +8,8 @@ import {
   UserRound,
   ClipboardList,
   TrendingUp,
-  CalendarCheck
+  CalendarCheck,
+  Mail
 } from "lucide-react";
 
 import OverviewTab from "../tabs/OverviewTab";
@@ -20,6 +21,7 @@ import StaffTab from "../tabs/StaffTab";
 import SettingsTab from "../tabs/SettingsTab";
 import CommissionsTab from "../tabs/CommissionsTab";
 import FollowUpsTab from "../tabs/FollowUpsTab";
+import RequestsTab from "../tabs/RequestsTab";
 
 export const tabConfig = {
   admin: [
@@ -28,6 +30,12 @@ export const tabConfig = {
       label: "Overview",
       icon: LayoutDashboard,
       component: OverviewTab
+    },
+    {
+      id: "requests",
+      label: "Requests",
+      icon: Mail,
+      component: RequestsTab
     },
     {
       id: "leads",
@@ -55,7 +63,7 @@ export const tabConfig = {
     },
     {
       id: "staff",
-      label: "Staff",
+      label: "Users",
       icon: UserRound,
       component: StaffTab
     },
@@ -75,6 +83,12 @@ export const tabConfig = {
       component: OverviewTab
     },
     {
+      id: "requests",
+      label: "Requests",
+      icon: Mail,
+      component: RequestsTab
+    },
+    {
       id: "my-leads",
       label: "My Leads",
       icon: ClipboardList,
@@ -91,6 +105,12 @@ export const tabConfig = {
       label: "Lead Bot",
       icon: Bot,
       component: LeadBotTab
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      icon: BriefcaseBusiness,
+      component: ProjectsTab
     },
     {
       id: "commissions",

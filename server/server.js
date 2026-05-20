@@ -85,7 +85,7 @@ import projectsRoutes from "./routes/projects.routes.js";
 import filesRoutes from "./routes/files.routes.js";
 import messagesRoutes from "./routes/messages.routes.js";
 import invoicesRoutes from "./routes/invoices.routes.js";
-
+import contactRoutes from "./routes/contact.routes.js";
 const app = express();
 
 app.use((req, res, next) => {
@@ -149,7 +149,8 @@ app.use("/messages", messagesRoutes);
 app.use("/invoices", invoicesRoutes);
 
 app.use("/uploads", express.static("uploads"));
-
+app.use("/api/contact", contactRoutes);
+app.use("/contact", contactRoutes);
 app.use((req, res) => {
   res.status(404).json({
     message: "API route not found",
