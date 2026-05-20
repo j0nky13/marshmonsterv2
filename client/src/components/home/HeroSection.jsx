@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ParticleBackground from "../ParticleBackground";
 import FloatingCode from "../FloatingCode";
-import { createMessage } from "../../lib/messagesApi";
+import { createContactRequest } from "../../lib/contactApi";
 
 const GREEN = "#B6F24A";
 
@@ -90,7 +90,6 @@ function FloatingSelect({ id, name, label, required = false, options = [] }) {
         {label}
       </label>
 
-      {/* caret */}
       <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
         ▾
       </div>
@@ -109,7 +108,6 @@ export default function HeroSection() {
   const heroRef = useRef(null);
   const ctaRef = useRef(null);
 
-  /* ---------------- intro timing ---------------- */
   useEffect(() => {
     const t1 = setTimeout(() => setReveal(true), 300);
     const t2 = setTimeout(() => setSubtitleIn(true), 1100);
@@ -121,7 +119,6 @@ export default function HeroSection() {
     };
   }, []);
 
-  /* ---------------- cursor glow ---------------- */
   useEffect(() => {
     const btn = ctaRef.current;
     if (!btn) return;
@@ -136,7 +133,6 @@ export default function HeroSection() {
     return () => btn.removeEventListener("pointermove", move);
   }, []);
 
-  /* ---------------- scroll exit ---------------- */
   useEffect(() => {
     const onScroll = () => {
       if (!heroRef.current) return;
@@ -148,7 +144,6 @@ export default function HeroSection() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* ---------------- body lock ---------------- */
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
   }, [open]);
@@ -157,22 +152,25 @@ export default function HeroSection() {
     e.preventDefault();
     setError("");
 
-    const formData = new FormData(e.target);
+    const form = e.target;
+    const formData = new FormData(form);
 
     const payload = {
       name: formData.get("name"),
       email: formData.get("email"),
       phone: formData.get("phone"),
-      company: formData.get("company"),
+      businessName: formData.get("company"),
+      website: "",
       timeframe: formData.get("timeframe"),
       message: formData.get("message"),
       source: "hero-modal",
-      page: "/",
+      page: "/"
     };
 
     try {
-      await createMessage(payload);
+      await createContactRequest(payload);
       setSubmitted(true);
+      form.reset();
     } catch {
       setError("Failed to send message. Please try again.");
     }
@@ -180,7 +178,6 @@ export default function HeroSection() {
 
   return (
     <>
-      {/* HERO */}
       <section
         ref={heroRef}
         className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-black px-6"
@@ -199,12 +196,11 @@ export default function HeroSection() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center gap-10">
-          {/* HEADLINE */}
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] text-white flex flex-wrap justify-center">
             <span
               className="inline-block transition-transform duration-[900ms] ease-[cubic-bezier(.22,1,.36,1)]"
               style={{
-                transform: reveal ? "translateX(-1.25rem)" : "translateX(0)",
+                transform: reveal ? "translateX(-1.25rem)" : "translateX(0)"
               }}
             >
               We build
@@ -218,7 +214,7 @@ export default function HeroSection() {
                   style={{
                     color: GREEN,
                     transform: reveal ? "translateY(0)" : "translateY(120%)",
-                    transitionDelay: `${i * 60}ms`,
+                    transitionDelay: `${i * 60}ms`
                   }}
                 >
                   {c === " " ? "\u00A0" : c}
@@ -232,14 +228,13 @@ export default function HeroSection() {
                 color: GREEN,
                 transform: reveal ? "scale(1)" : "scale(0)",
                 opacity: reveal ? 1 : 0,
-                transitionDelay: `${"cool stuff".length * 60 + 120}ms`,
+                transitionDelay: `${"cool stuff".length * 60 + 120}ms`
               }}
             >
               .
             </span>
           </h1>
 
-          {/* SUBTITLE */}
           <p
             className={`max-w-2xl text-lg md:text-xl leading-relaxed transition-all duration-700 ${
               subtitleIn
@@ -252,7 +247,6 @@ export default function HeroSection() {
             Just fast, custom-engineered digital experiences.
           </p>
 
-          {/* CTA */}
           <button
             ref={ctaRef}
             onClick={() => setOpen(true)}
@@ -266,7 +260,7 @@ export default function HeroSection() {
               color: "#0f0f0f",
               boxShadow: ctaIn
                 ? "0 0 40px rgba(182,242,74,0.35)"
-                : "0 0 0 rgba(0,0,0,0)",
+                : "0 0 0 rgba(0,0,0,0)"
             }}
           >
             <span className="relative z-10">Start a project</span>
@@ -274,19 +268,17 @@ export default function HeroSection() {
               className="absolute inset-0 opacity-0 hover:opacity-100 transition"
               style={{
                 background:
-                  "radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(255,255,255,0.45), transparent 60%)",
+                  "radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(255,255,255,0.45), transparent 60%)"
               }}
             />
           </button>
         </div>
 
-        {/* DOWN ARROW */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
           <ChevronDown size={34} color={GREEN} className="animate-bounce opacity-80" />
         </div>
       </section>
 
-      {/* MODAL */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -322,17 +314,8 @@ export default function HeroSection() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <FloatingInput id="hero-name" name="name" label="Your name" required />
                   <FloatingInput id="hero-email" name="email" type="email" label="Email" required />
-                  <FloatingInput
-                    id="hero-phone"
-                    name="phone"
-                    type="tel"
-                    label="Phone number"
-                  />
-                  <FloatingInput
-                    id="hero-company"
-                    name="company"
-                    label="Company name"
-                  />
+                  <FloatingInput id="hero-phone" name="phone" type="tel" label="Phone number" />
+                  <FloatingInput id="hero-company" name="company" label="Company name" />
 
                   <FloatingSelect
                     id="hero-timeframe"
@@ -343,7 +326,7 @@ export default function HeroSection() {
                       { value: "2-4-weeks", label: "2–4 weeks" },
                       { value: "1-2-months", label: "1–2 months" },
                       { value: "3-plus-months", label: "3+ months" },
-                      { value: "exploring", label: "Just exploring" },
+                      { value: "exploring", label: "Just exploring" }
                     ]}
                   />
 
