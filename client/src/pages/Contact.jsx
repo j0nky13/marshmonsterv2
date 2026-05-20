@@ -334,17 +334,18 @@
 //     </div>
 //   );
 // }
-
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { createContactRequest } from "../lib/contactApi";
 
 const GREEN = "#B6F24A";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [error, setError] = useState("");
   const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
 
   const formatPhone = (value) => {
     const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -357,6 +358,8 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFailed(false);
+    setSending(true);
 
     const form = e.target;
     const formData = new FormData(form);
@@ -384,10 +387,19 @@ export default function Contact() {
       setPhone("");
       form.reset();
     } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
+      console.error("Contact submit failed:", err);
+      setError(err.message || "Something went wrong. Please try again.");
+      setFailed(true);
+    } finally {
+      setSending(false);
     }
   };
+
+  function resetFormState() {
+    setSubmitted(false);
+    setFailed(false);
+    setError("");
+  }
 
   return (
     <section className="relative min-h-screen bg-black overflow-hidden px-6 py-32">
@@ -428,135 +440,119 @@ export default function Contact() {
           viewport={{ once: false, amount: 0.35 }}
           className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-black/70 backdrop-blur-xl p-8 md:p-10"
         >
-          {!submitted ? (
-            <form onSubmit={handleSubmit} className="grid gap-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <Field id="name" label="Name" />
-                <Field id="email" label="Email" type="email" />
+          <AnimatePresence mode="wait">
+            {!submitted && !failed ? (
+              <motion.form
+                key="contact-form"
+                onSubmit={handleSubmit}
+                className="grid gap-6"
+                initial={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Field id="name" label="Name" />
+                  <Field id="email" label="Email" type="email" />
 
-                <div className="relative">
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(formatPhone(e.target.value))}
-                    placeholder=" "
-                    className="peer w-full rounded-2xl bg-black/60 text-white border border-white/15 px-4 py-3.5 focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10 transition placeholder-transparent"
+                  <div className="relative">
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(formatPhone(e.target.value))}
+                      placeholder=" "
+                      className="peer w-full rounded-2xl bg-black/60 text-white border border-white/15 px-4 py-3.5 focus:outline-none focus:border-lime-400 focus:ring-4 focus:ring-lime-400/10 transition placeholder-transparent"
+                    />
+                    <label
+                      htmlFor="phone"
+                      className="absolute left-4 top-3.5 text-gray-400 text-sm transition-all
+                        peer-placeholder-shown:top-3.5
+                        peer-placeholder-shown:text-sm
+                        peer-focus:-top-2
+                        peer-focus:text-xs
+                        peer-focus:text-lime-300
+                        peer-focus:bg-black
+                        peer-focus:px-1
+                        peer-[&:not(:placeholder-shown)]:-top-2
+                        peer-[&:not(:placeholder-shown)]:text-xs
+                        peer-[&:not(:placeholder-shown)]:bg-black
+                        peer-[&:not(:placeholder-shown)]:px-1"
+                    >
+                      Phone Number
+                    </label>
+                  </div>
+
+                  <Field id="company_name" label="Company Name" />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <SelectField
+                    id="timeframe"
+                    label="Project Timeframe"
+                    options={[
+                      "ASAP",
+                      "2–4 weeks",
+                      "1–3 months",
+                      "Flexible"
+                    ]}
                   />
-                  <label
-                    htmlFor="phone"
-                    className="absolute left-4 top-3.5 text-gray-400 text-sm transition-all
-                      peer-placeholder-shown:top-3.5
-                      peer-placeholder-shown:text-sm
-                      peer-focus:-top-2
-                      peer-focus:text-xs
-                      peer-focus:text-lime-300
-                      peer-focus:bg-black
-                      peer-focus:px-1
-                      peer-[&:not(:placeholder-shown)]:-top-2
-                      peer-[&:not(:placeholder-shown)]:text-xs
-                      peer-[&:not(:placeholder-shown)]:bg-black
-                      peer-[&:not(:placeholder-shown)]:px-1"
-                  >
-                    Phone Number
-                  </label>
+                  <SelectField
+                    id="budget"
+                    label="Estimated Budget"
+                    options={[
+                      "$2k – $5k",
+                      "$5k – $10k",
+                      "$10k+",
+                      "Not sure yet"
+                    ]}
+                  />
                 </div>
 
-                <Field id="company_name" label="Company Name" />
-              </div>
+                <Field id="message" label="Project Details" textarea />
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <SelectField
-                  id="timeframe"
-                  label="Project Timeframe"
-                  options={[
-                    "ASAP",
-                    "2–4 weeks",
-                    "1–3 months",
-                    "Flexible"
-                  ]}
+                <input
+                  type="text"
+                  name="bot_field"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  className="hidden"
                 />
-                <SelectField
-                  id="budget"
-                  label="Estimated Budget"
-                  options={[
-                    "$2k – $5k",
-                    "$5k – $10k",
-                    "$10k+",
-                    "Not sure yet"
-                  ]}
-                />
-              </div>
 
-              <Field id="message" label="Project Details" textarea />
+                {error && (
+                  <div className="text-sm text-red-400 text-center">
+                    {error}
+                  </div>
+                )}
 
-              <input
-                type="text"
-                name="bot_field"
-                tabIndex={-1}
-                autoComplete="off"
-                className="hidden"
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="mt-4 w-full rounded-2xl px-6 py-3 font-semibold text-black flex items-center justify-center disabled:opacity-60"
+                  style={{
+                    backgroundColor: GREEN,
+                    boxShadow: "0 0 34px rgba(182,242,74,0.25)"
+                  }}
+                >
+                  {sending ? "Sending..." : "Send message"}
+                </button>
+              </motion.form>
+            ) : submitted ? (
+              <SuccessMessage
+                key="contact-success"
+                title="Message sent"
+                text="We’ll be in touch shortly."
               />
-
-              {error && (
-                <div className="text-sm text-red-400 text-center">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="mt-4 w-full rounded-2xl px-6 py-3 font-semibold text-black flex items-center justify-center"
-                style={{
-                  backgroundColor: GREEN,
-                  boxShadow: "0 0 34px rgba(182,242,74,0.25)"
-                }}
-              >
-                Send message
-              </button>
-            </form>
-          ) : (
-            <div className="text-center py-10">
-              <motion.svg
-                width="56"
-                height="56"
-                viewBox="0 0 52 52"
-                className="mx-auto mb-6"
-              >
-                <motion.circle
-                  cx="26"
-                  cy="26"
-                  r="25"
-                  fill="none"
-                  stroke={GREEN}
-                  strokeWidth="2"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.6 }}
-                />
-                <motion.path
-                  d="M14 27 L23 35 L38 18"
-                  fill="none"
-                  stroke={GREEN}
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                />
-              </motion.svg>
-
-              <div className="text-2xl font-extrabold text-white">
-                Message sent
-              </div>
-              <p className="mt-3 text-gray-400">
-                We’ll be in touch shortly.
-              </p>
-            </div>
-          )}
+            ) : (
+              <ErrorMessage
+                key="contact-error"
+                title="Message failed"
+                text={error || "Something went wrong. Please try again."}
+                onRetry={resetFormState}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <div className="mt-12 text-center text-xs text-gray-500 tracking-wide">
@@ -564,6 +560,110 @@ export default function Contact() {
         </div>
       </div>
     </section>
+  );
+}
+
+function SuccessMessage({
+  title = "Message sent",
+  text = "We’ll be in touch shortly."
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35 }}
+      className="text-center py-10"
+    >
+      <motion.svg
+        width="64"
+        height="64"
+        viewBox="0 0 52 52"
+        className="mx-auto mb-6"
+      >
+        <motion.circle
+          cx="26"
+          cy="26"
+          r="25"
+          fill="none"
+          stroke={GREEN}
+          strokeWidth="2"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.55 }}
+        />
+        <motion.path
+          d="M14 27 L23 35 L38 18"
+          fill="none"
+          stroke={GREEN}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ delay: 0.35, duration: 0.45 }}
+        />
+      </motion.svg>
+
+      <div className="text-2xl font-extrabold text-white">{title}</div>
+      <p className="mt-3 text-gray-400">{text}</p>
+    </motion.div>
+  );
+}
+
+function ErrorMessage({
+  title = "Message failed",
+  text = "Something went wrong. Please try again.",
+  onRetry
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35 }}
+      className="text-center py-10"
+    >
+      <motion.svg
+        width="64"
+        height="64"
+        viewBox="0 0 52 52"
+        className="mx-auto mb-6"
+      >
+        <motion.circle
+          cx="26"
+          cy="26"
+          r="25"
+          fill="none"
+          stroke="#f87171"
+          strokeWidth="2"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.55 }}
+        />
+        <motion.path
+          d="M17 17 L35 35 M35 17 L17 35"
+          fill="none"
+          stroke="#f87171"
+          strokeWidth="3"
+          strokeLinecap="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ delay: 0.35, duration: 0.45 }}
+        />
+      </motion.svg>
+
+      <div className="text-2xl font-extrabold text-white">{title}</div>
+      <p className="mt-3 text-gray-400">{text}</p>
+
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-6 rounded-2xl px-5 py-3 font-semibold border border-white/15 text-white hover:border-lime-400 hover:text-lime-300 transition"
+        >
+          Try again
+        </button>
+      )}
+    </motion.div>
   );
 }
 

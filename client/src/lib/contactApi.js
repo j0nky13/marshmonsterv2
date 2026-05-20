@@ -9,7 +9,11 @@ export async function createContactRequest(payload) {
     body: JSON.stringify(payload)
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : { message: await response.text() };
 
   if (!response.ok) {
     throw data;

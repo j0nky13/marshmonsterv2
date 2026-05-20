@@ -33,7 +33,7 @@ export const tabConfig = {
     },
     {
       id: "requests",
-      label: "Requests",
+      label: "Inbox",
       icon: Mail,
       component: RequestsTab
     },

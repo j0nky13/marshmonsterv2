@@ -76,6 +76,7 @@ function FloatingSelect({ id, name, label, required = false, options = [] }) {
         <option value="" disabled>
           Select…
         </option>
+
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
@@ -97,13 +98,108 @@ function FloatingSelect({ id, name, label, required = false, options = [] }) {
   );
 }
 
+function SuccessMessage({
+  title = "Message sent",
+  text = "We’ll be in touch shortly."
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35 }}
+      className="text-center py-10"
+    >
+      <motion.svg
+        width="64"
+        height="64"
+        viewBox="0 0 52 52"
+        className="mx-auto mb-6"
+      >
+        <motion.circle
+          cx="26"
+          cy="26"
+          r="25"
+          fill="none"
+          stroke={GREEN}
+          strokeWidth="2"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.55 }}
+        />
+        <motion.path
+          d="M14 27 L23 35 L38 18"
+          fill="none"
+          stroke={GREEN}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ delay: 0.35, duration: 0.45 }}
+        />
+      </motion.svg>
+
+      <div className="text-2xl font-extrabold text-white">{title}</div>
+      <p className="mt-3 text-gray-400">{text}</p>
+    </motion.div>
+  );
+}
+
+function ErrorMessage({
+  title = "Message failed",
+  text = "Something went wrong. Please try again."
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35 }}
+      className="text-center py-10"
+    >
+      <motion.svg
+        width="64"
+        height="64"
+        viewBox="0 0 52 52"
+        className="mx-auto mb-6"
+      >
+        <motion.circle
+          cx="26"
+          cy="26"
+          r="25"
+          fill="none"
+          stroke="#f87171"
+          strokeWidth="2"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.55 }}
+        />
+        <motion.path
+          d="M17 17 L35 35 M35 17 L17 35"
+          fill="none"
+          stroke="#f87171"
+          strokeWidth="3"
+          strokeLinecap="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ delay: 0.35, duration: 0.45 }}
+        />
+      </motion.svg>
+
+      <div className="text-2xl font-extrabold text-white">{title}</div>
+      <p className="mt-3 text-gray-400">{text}</p>
+    </motion.div>
+  );
+}
+
 export default function HeroSection() {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [error, setError] = useState("");
   const [reveal, setReveal] = useState(false);
   const [subtitleIn, setSubtitleIn] = useState(false);
   const [ctaIn, setCtaIn] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const heroRef = useRef(null);
   const ctaRef = useRef(null);
@@ -112,6 +208,7 @@ export default function HeroSection() {
     const t1 = setTimeout(() => setReveal(true), 300);
     const t2 = setTimeout(() => setSubtitleIn(true), 1100);
     const t3 = setTimeout(() => setCtaIn(true), 1250);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -140,17 +237,33 @@ export default function HeroSection() {
       heroRef.current.style.opacity = `${Math.max(0, 1 - y / 400)}`;
       heroRef.current.style.transform = `translateY(${Math.min(y / 2, 200)}px)`;
     };
+
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
+
+  function resetModal() {
+    setOpen(false);
+    setSubmitted(false);
+    setFailed(false);
+    setError("");
+    setSending(false);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setFailed(false);
+    setSending(true);
 
     const form = e.target;
     const formData = new FormData(form);
@@ -171,8 +284,12 @@ export default function HeroSection() {
       await createContactRequest(payload);
       setSubmitted(true);
       form.reset();
-    } catch {
-      setError("Failed to send message. Please try again.");
+    } catch (err) {
+      console.error("Hero contact submit failed:", err);
+      setError(err.message || "Failed to send message. Please try again.");
+      setFailed(true);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -275,7 +392,11 @@ export default function HeroSection() {
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-          <ChevronDown size={34} color={GREEN} className="animate-bounce opacity-80" />
+          <ChevronDown
+            size={34}
+            color={GREEN}
+            className="animate-bounce opacity-80"
+          />
         </div>
       </section>
 
@@ -286,7 +407,7 @@ export default function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setOpen(false)}
+            onClick={resetModal}
           >
             <motion.div
               className="relative bg-black p-6 rounded-3xl w-full max-w-md border border-white/15"
@@ -296,11 +417,7 @@ export default function HeroSection() {
               exit={{ scale: 0.94, opacity: 0 }}
             >
               <button
-                onClick={() => {
-                  setOpen(false);
-                  setSubmitted(false);
-                  setError("");
-                }}
+                onClick={resetModal}
                 className="absolute top-4 right-4 text-slate-400 hover:text-white"
               >
                 ✕
@@ -310,49 +427,86 @@ export default function HeroSection() {
                 Start a project
               </h3>
 
-              {!submitted ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <FloatingInput id="hero-name" name="name" label="Your name" required />
-                  <FloatingInput id="hero-email" name="email" type="email" label="Email" required />
-                  <FloatingInput id="hero-phone" name="phone" type="tel" label="Phone number" />
-                  <FloatingInput id="hero-company" name="company" label="Company name" />
-
-                  <FloatingSelect
-                    id="hero-timeframe"
-                    name="timeframe"
-                    label="Timeframe"
-                    options={[
-                      { value: "asap", label: "ASAP" },
-                      { value: "2-4-weeks", label: "2–4 weeks" },
-                      { value: "1-2-months", label: "1–2 months" },
-                      { value: "3-plus-months", label: "3+ months" },
-                      { value: "exploring", label: "Just exploring" }
-                    ]}
-                  />
-
-                  <FloatingTextarea
-                    id="hero-message"
-                    name="message"
-                    label="Tell us what you’re building…"
-                  />
-
-                  {error && <div className="text-xs text-red-400">{error}</div>}
-
-                  <button
-                    type="submit"
-                    className="w-full rounded-2xl px-6 py-3 font-semibold text-black bg-lime-400 hover:bg-lime-300 transition"
+              <AnimatePresence mode="wait">
+                {!submitted && !failed ? (
+                  <motion.form
+                    key="hero-form"
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                    initial={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    Send inquiry
-                  </button>
-                </form>
-              ) : (
-                <div
-                  className="text-center py-10 text-lg animate-pulse"
-                  style={{ color: GREEN }}
-                >
-                  Message sent. We’ll be in touch.
-                </div>
-              )}
+                    <FloatingInput
+                      id="hero-name"
+                      name="name"
+                      label="Your name"
+                      required
+                    />
+                    <FloatingInput
+                      id="hero-email"
+                      name="email"
+                      type="email"
+                      label="Email"
+                      required
+                    />
+                    <FloatingInput
+                      id="hero-phone"
+                      name="phone"
+                      type="tel"
+                      label="Phone number"
+                    />
+                    <FloatingInput
+                      id="hero-company"
+                      name="company"
+                      label="Company name"
+                    />
+
+                    <FloatingSelect
+                      id="hero-timeframe"
+                      name="timeframe"
+                      label="Timeframe"
+                      options={[
+                        { value: "asap", label: "ASAP" },
+                        { value: "2-4-weeks", label: "2–4 weeks" },
+                        { value: "1-2-months", label: "1–2 months" },
+                        { value: "3-plus-months", label: "3+ months" },
+                        { value: "exploring", label: "Just exploring" }
+                      ]}
+                    />
+
+                    <FloatingTextarea
+                      id="hero-message"
+                      name="message"
+                      label="Tell us what you’re building…"
+                    />
+
+                    {error && (
+                      <div className="text-xs text-red-400">{error}</div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={sending}
+                      className="w-full rounded-2xl px-6 py-3 font-semibold text-black bg-lime-400 hover:bg-lime-300 transition disabled:opacity-60"
+                    >
+                      {sending ? "Sending..." : "Send inquiry"}
+                    </button>
+                  </motion.form>
+                ) : submitted ? (
+                  <SuccessMessage
+                    key="hero-success"
+                    title="Message sent"
+                    text="We’ll be in touch."
+                  />
+                ) : (
+                  <ErrorMessage
+                    key="hero-error"
+                    title="Message failed"
+                    text={error || "Failed to send message. Please try again."}
+                  />
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}
