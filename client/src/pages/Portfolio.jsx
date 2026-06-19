@@ -54,6 +54,17 @@ export default function Portfolio() {
       cover: "/portfolio-6.png",
       url: "https://dawgbiteschs.com",
     },
+      {
+      id: "insurance",
+      title: "RCS Insurance",
+      role: "Insurance Agency",
+      summary:
+        "Focus on lead generation and clean, modern look.",
+      details:
+        "Designed to convert leads, SEO optimized and full backend dashboard for incoming lead submissions, customer portal and database.",
+      cover: "/portfolio-5.png",
+      url: "https://rcsinsurancegroup.com",
+    },
   ];
 
   const [openId, setOpenId] = useState(null);
