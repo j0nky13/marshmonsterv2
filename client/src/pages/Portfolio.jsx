@@ -41,7 +41,7 @@ export default function Portfolio() {
       details:
         "Optimized for real-world users: fast loads, prominent CTAs, service-area SEO, and minimal friction to contact.",
       cover: "/portfolio-2.png",
-      url: "https://breeze-shooters-app-nt9ww.ondigitalocean.app",
+      url: "https://breezeshootershvac.com",
     },
      {
       id: "dawg",
