@@ -65,6 +65,17 @@ export default function Portfolio() {
       cover: "/portfolio-5.png",
       url: "https://rcsinsurancegroup.com",
     },
+       {
+      id: "lead funnel",
+      title: "Bigrigquotes.us",
+      role: "Trucking Insurance Lead Funnel",
+      summary:
+        "Focus on lead generation, with a nice step-based-funnel.",
+      details:
+        "Designed to convert leads, SEO optimized and full backend dashboard for incoming lead submissions utilizing MonsterCRM.",
+      cover: "/portfolio-7.png",
+      url: "https://bigrigquotes.us",
+    },
   ];
 
   const [openId, setOpenId] = useState(null);
